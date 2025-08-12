@@ -1,0 +1,11 @@
+{
+	"compilerOptions": {
+		"baseUrl": ".",
+		"paths": {
+			"@/*": ["src/*"]
+		},
+		"module": "ES2022",
+		"target": "es2022"
+	},
+	"exclude": ["node_modules"]
+}
