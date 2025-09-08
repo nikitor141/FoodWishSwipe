@@ -28,6 +28,10 @@ $themes: (
 );
 
 :root {
+	&[data-theme-changing] * {
+		transition: none !important;
+	}
+
 	@each $key, $value in $themes {
 		&[data-theme='#{$key}'] {
 			color-scheme: map.get($value, _scheme);

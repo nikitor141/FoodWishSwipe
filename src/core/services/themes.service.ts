@@ -39,6 +39,9 @@ export class ThemesService extends Singleton {
 	}
 
 	#applyTheme(theme: ApplicableThemes): void {
+		setTimeout(() => delete document.documentElement.dataset.themeChanging)
+
+		document.documentElement.dataset.themeChanging = 'true'
 		this.dataset.theme = theme
 	}
 

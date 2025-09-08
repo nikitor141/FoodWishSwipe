@@ -68,13 +68,13 @@ $devices: (
 	}
 }
 
-@mixin btn() {
+@mixin btn($btn-width: 45, $btn-height: 45) {
 	@include glassyBorder();
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	width: f.rem(45);
-	height: f.rem(45);
+	width: f.rem($btn-width);
+	height: f.rem($btn-height);
 	background-color: f.cl($cd-glass-background, 0.25);
 	border-radius: 50%;
 	svg {

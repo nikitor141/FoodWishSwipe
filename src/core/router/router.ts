@@ -10,7 +10,7 @@ import { ROUTES } from './routes.data'
 export class Router extends Singleton {
 	#store: Store = Store.instance
 	#routes: Record<string, ScreenSingleton> = ROUTES
-	#currentRoute!: ScreenSingleton
+	#currentRoute!: ScreenSingleton | undefined
 	#layout: Layout = Layout.instance
 	#notificationService: NotificationService = NotificationService.instance
 
@@ -52,11 +52,13 @@ export class Router extends Singleton {
 		this.#currentRoute = this.#routes[path]
 
 		if (!this.#currentRoute) {
+			this.#store.clearObservers(previousRoute) //очищаем страницу, с которой ушли на 404
 			this.navigate(HOME_URL)
 			this.#notificationService.show(MESSAGE_REDIRECTED, 'negative')
 			return
 		}
 
+		this.#currentRoute.instance.path ??= path
 		this.#store.updateState('screen', { previous: previousRoute, current: this.#currentRoute })
 		this.#render()
 	}

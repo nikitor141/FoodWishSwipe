@@ -16,16 +16,8 @@ export class ProductCard implements Component {
 		this.store.addObserver(this, this.screen)
 	}
 
-	onScreenChange() {
-		this.destroy()
-	}
-
 	update(): void {
 		this.element.querySelector(`.${styles['product-card__price']}`).textContent = this.store.state.theme
-	}
-
-	destroy() {
-		this.store.removeObserver(this, this.screen)
 	}
 
 	render(): HTMLElement {

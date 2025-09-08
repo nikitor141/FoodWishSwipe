@@ -4,13 +4,15 @@
 
 .header {
 	@include m.glassyBorder();
-	$padding-b: 20;
-	$padding-i: 40;
+	$btn-width: 45;
+	$btn-height: 45;
+	$gap: 20;
+
 	display: flex;
-	gap: f.rem(20);
+	gap: f.rem($gap);
 	align-items: center;
 	justify-content: space-between;
-	padding: f.rem($padding-b) f.rem($padding-i);
+	padding: f.rem(20) f.rem(40);
 	margin-inline: auto;
 	margin-top: f.rem(20);
 	background-color: f.cl($cd-glass-background, 0.45);
@@ -35,15 +37,42 @@
 
 		&-indicator {
 			position: absolute;
-			bottom: f.rem(-$padding-b / 2);
+			top: 0;
+			right: 0;
 			left: 0;
-			width: f.rem(20);
-			height: f.rem(2);
-			background-color: f.cl($cd-accent);
-			border-radius: f.rem(1);
+			height: f.rem($btn-height);
+			background-color: f.cl($cd-accent, 0.3);
+			border-radius: f.rem($btn-height / 2);
+			box-shadow: 0 0 f.rem(15) f.cl($cd-accent, 0.3);
+
+			&--going-right {
+				transition:
+					right 0.3s ease-out,
+					left 0.3s 0.15s ease-out;
+			}
+
+			&--going-left {
+				transition:
+					left 0.3s ease-out,
+					right 0.3s 0.15s ease-out;
+			}
 		}
 	}
 	&__nav-link {
 		@include m.btn();
+		transition: color 0.3s 0.15s ease-out;
+
+		&--active {
+			color: f.cl($cd-accent);
+		}
+	}
+}
+
+@keyframes indicatorMoving {
+	0% {
+		transform: none;
+	}
+	100% {
+		transform: scale(0.5);
 	}
 }

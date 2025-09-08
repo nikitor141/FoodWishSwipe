@@ -1,4 +1,5 @@
 import { RenderService } from '@core/services/render.service'
+
 import { TITLE_FAVORITES } from '@/constants/titles.constants'
 import { BaseScreen } from '@/core/component/base-screen.component'
 import styles from './favorites.module.scss'

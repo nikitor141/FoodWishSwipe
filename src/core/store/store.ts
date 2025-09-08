@@ -6,8 +6,7 @@ import { INITIAL_STATE } from '@/config/state.config.ts'
 import { Singleton } from '@/utils/singleton'
 
 interface Observer {
-	update(): void
-	onScreenChange?(): void
+	update<K extends keyof StateItems>(payload: { key: K; value: StateItems[K] }): void
 }
 interface ObserversStore {
 	byScreen: Map<ScreenSingleton, Set<Observer>>
@@ -51,14 +50,9 @@ export class Store extends Singleton {
 		set: (target, property, newValue) => {
 			const success = Reflect.set(target, property, newValue)
 			if (success) {
-				if (property === 'screen') {
-					this.#notify()
-					this.#notifyScreenChange()
-				} else {
-					this.#notify()
-				}
+				if (property === 'screen') this.clearObservers(this.state.screen.previous)
 
-				// property === 'screen' ? this.#notifyScreenChange() : this.#notify()
+				this.#notify(property as keyof StateItems, newValue)
 			}
 			return success
 		}
@@ -71,21 +65,9 @@ export class Store extends Singleton {
 		return this.#state
 	}
 
-	#notifyScreenChange() {
-		const previousScreen = this.state.screen.previous
-		if (!previousScreen || !this.#observers.byScreen.size) return
-
-		const observersToNotify = this.#observers.byScreen.get(previousScreen)
-		if (!observersToNotify) return
-
-		for (const observer of observersToNotify) {
-			observer.onScreenChange?.()
-		}
-	}
-
-	#notify(): void {
+	#notify<K extends keyof StateItems>(key: K, value: StateItems[K]): void {
 		for (const observer of this.#observers.independent) {
-			observer.update()
+			observer.update({ key, value })
 		}
 
 		if (!this.#observers.byScreen.size) return
@@ -95,7 +77,7 @@ export class Store extends Singleton {
 		if (!byScreenObserversToNotify) return
 
 		for (const observer of byScreenObserversToNotify) {
-			observer.update()
+			observer.update({ key, value })
 		}
 	}
 
@@ -118,5 +100,17 @@ export class Store extends Singleton {
 		}
 
 		this.#observers.byScreen.get(screen).delete(observer)
+	}
+
+	clearObservers(screen?: ScreenSingleton, fullClear: boolean = false) {
+		if (!screen && !fullClear) return
+
+		if (fullClear) {
+			this.#observers.independent.clear()
+			this.#observers.byScreen.clear()
+			return
+		}
+
+		this.#observers.byScreen.delete(screen)
 	}
 }
