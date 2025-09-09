@@ -1,7 +1,7 @@
 import { Singleton } from '@utils/singleton'
 import { PRODUCT_BY_ID_URL, RANDOM_PRODUCT_URL, SERVER_URL } from '@/config/url.config'
 
-interface Product {
+export interface Product {
 	categoryId: number
 	categoryName: string
 	id: number

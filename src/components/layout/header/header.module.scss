@@ -13,8 +13,7 @@
 	align-items: center;
 	justify-content: space-between;
 	padding: f.rem(20) f.rem(40);
-	margin-inline: auto;
-	margin-top: f.rem(20);
+	margin: f.rem(20) auto;
 	background-color: f.cl($cd-glass-background, 0.45);
 	border-radius: f.rem(50);
 

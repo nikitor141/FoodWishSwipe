@@ -8,6 +8,7 @@ import template from './favorites.template.html?raw'
 export class Favorites extends BaseScreen {
 	element: HTMLElement
 	renderService: RenderService = RenderService.instance
+	path!: string
 
 	protected constructor() {
 		super()

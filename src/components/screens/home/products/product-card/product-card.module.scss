@@ -78,16 +78,15 @@
 		color: f.cl($cd-small-text, 0.6);
 		text-wrap: nowrap;
 
-		&-category {
+		&-category,
+		&-subcategory {
+			overflow: hidden;
+			text-overflow: ellipsis;
 		}
 		svg {
 			flex-shrink: 0;
 			width: 1em;
 			height: 1em;
-		}
-		&-subcategory {
-			overflow: hidden;
-			text-overflow: ellipsis;
 		}
 	}
 	&__image {
