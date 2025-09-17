@@ -12,10 +12,10 @@ export interface Product {
 	subcategoryName: string
 	url: string
 }
-interface Excluded {
-	categories: number[]
-	subcategories: number[]
-	products: number[]
+export interface Excluded {
+	categories: Product['categoryId'][]
+	subcategories: Product['subcategoryId'][]
+	products: Product['id'][]
 }
 type RandomProductsArgs = { count: number; excluded: Excluded }
 type ProductByIdArgs = { id: number }

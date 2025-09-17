@@ -43,7 +43,7 @@ export class NotificationService extends Singleton {
 		notif.destroy()
 	}
 
-	#produceDestroyed = (e: DragCustomEvent) => {
+	#produceDestroyed = (e: DragCustomEvent<Notification>) => {
 		this.#active.delete(e.detail.instance)
 		this.#removeListeners(e.detail.instance)
 
@@ -54,12 +54,12 @@ export class NotificationService extends Singleton {
 		}
 	}
 
-	#produceDragstart = (e: DragCustomEvent) => {
+	#produceDragstart = (e: DragCustomEvent<Notification>) => {
 		clearTimeout(e.detail.instance.timeout)
 		e.detail.instance.timeout = null
 	}
 
-	#produceDragend = (e: DragCustomEvent) => {
+	#produceDragend = (e: DragCustomEvent<Notification>) => {
 		const notif = e.detail.instance
 
 		if (e.detail.thresholdPassed.y || (!e.detail.isInView.topLeft && !e.detail.isInView.topRight)) {

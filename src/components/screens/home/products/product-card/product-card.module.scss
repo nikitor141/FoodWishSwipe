@@ -54,19 +54,47 @@
 		--card-gradient-positive-opacity 0.4s,
 		--card-gradient-negative-opacity 0.4s,
 		--card-gradient-positive-end 0.4s,
-		--card-gradient-negative-end 0.4s;
+		--card-gradient-negative-end 0.4s,
+		translate 0.4s,
+		left 0.4s,
+		rotate 0.4s;
 
-	//@include m.glassyBorder($border-width, f.cl($cd-glass-border, 0.25), f.cl($cd-glass-border, 0.05));
-
-	&.negative {
-		--card-gradient-positive-opacity: 0;
-		--card-gradient-negative-opacity: 0.4;
-		--card-gradient-negative-end: 100%;
+	&[data-dragging='true'] {
+		transition: none;
 	}
-	&.positive {
-		--card-gradient-negative-opacity: 0;
-		--card-gradient-positive-opacity: 0.4;
-		--card-gradient-positive-end: 100%;
+
+	@include m.glassyBorder;
+	* {
+		transition: opacity 0.2s;
+	}
+	&:not(:last-child) {
+		pointer-events: none;
+
+		* {
+			opacity: 0;
+		}
+	}
+	&:nth-child(1),
+	&:nth-child(2),
+	&:nth-child(3) {
+		grid-row: 1 / 2;
+		grid-column: 1 / 2;
+	}
+	&:nth-child(1) {
+		translate: 0 f.rem(-20);
+	}
+	&:nth-child(2) {
+		translate: 0 f.rem(-10);
+		* {
+			opacity: 0.5;
+		}
+	}
+	&:nth-child(3) {
+		translate: 0 f.rem(0);
+
+		* {
+			opacity: 1;
+		}
 	}
 
 	&__tag {

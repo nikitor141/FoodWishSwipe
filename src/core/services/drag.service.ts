@@ -1,8 +1,7 @@
-import { Notification } from '@components/layout/notification/notification.component.ts'
 import { Component } from '@core/component/component.ts'
 import { Singleton } from '@utils/singleton.ts'
 
-interface DragConfig {
+export interface DragConfig {
 	direction: 'horizontal' | 'vertical' | 'both'
 	componentInstance: Component
 	threshold?: number // минимальное расстояние для срабатывания
@@ -37,11 +36,17 @@ interface Strategy {
 		bottomLeft: boolean
 		bottomRight: boolean
 	}
+	snap: (
+		element: HTMLElement,
+		initialPosition: { left: number; top: number; center: { x: number; y: number } }
+	) => void
 }
-export type DragCustomEvent = CustomEvent<{
-	instance: Notification
+export type DragCustomEvent<T extends Component = Component> = CustomEvent<{
+	instance: T
 	thresholdPassed: { x?: boolean; y?: boolean }
 	isInView: { topLeft: boolean; topRight: boolean; bottomLeft: boolean; bottomRight: boolean }
+	elementDelta: { x: number; y: number; center: { x: number; y: number } }
+	direction: 'left' | 'right' | 'up' | 'down' | null
 }>
 
 export class DragService extends Singleton {
@@ -100,6 +105,9 @@ export class DragService extends Singleton {
 					bottomLeft: !!document.elementFromPoint(elementCoords.left, elementCoords.bottom),
 					bottomRight: !!document.elementFromPoint(elementCoords.right, elementCoords.bottom)
 				}
+			},
+			snap: (element, initialPosition) => {
+				element.style.left = initialPosition.left + 'px'
 			}
 		},
 		vertical: {
@@ -151,6 +159,9 @@ export class DragService extends Singleton {
 					bottomLeft: !!document.elementFromPoint(elementCoords.left, elementCoords.bottom),
 					bottomRight: !!document.elementFromPoint(elementCoords.right, elementCoords.bottom)
 				}
+			},
+			snap: (element, initialPosition) => {
+				element.style.top = initialPosition.top + 'px'
 			}
 		},
 		both: {
@@ -217,13 +228,21 @@ export class DragService extends Singleton {
 					bottomLeft: !!document.elementFromPoint(elementCoords.left, elementCoords.bottom),
 					bottomRight: !!document.elementFromPoint(elementCoords.right, elementCoords.bottom)
 				}
+			},
+			snap: (element, initialPosition) => {
+				element.style.top = initialPosition.top + 'px'
+				element.style.left = initialPosition.left + 'px'
 			}
 		}
 	}
 
 	attach(element: HTMLElement, config: DragConfig) {
 		const elementCoords = element.getBoundingClientRect()
-		const initialPosition = { x: elementCoords.left, y: elementCoords.top }
+		const initialPosition = {
+			left: elementCoords.left,
+			top: elementCoords.top,
+			center: { x: elementCoords.left + elementCoords.width / 2, y: elementCoords.top + elementCoords.height / 2 }
+		}
 
 		this.#onPointerDown = e => {
 			this.#produceDrag(element, config, initialPosition, e)
@@ -236,8 +255,14 @@ export class DragService extends Singleton {
 		element.removeEventListener('pointerdown', this.#onPointerDown)
 	}
 
-	#produceDrag(element: HTMLElement, config: DragConfig, initialPosition: { x: number; y: number }, e: PointerEvent) {
+	#produceDrag(
+		element: HTMLElement,
+		config: DragConfig,
+		initialPosition: { left: number; top: number; center: { x: number; y: number } },
+		e: PointerEvent
+	) {
 		element.ondragstart = () => false
+		element.style.position = 'absolute'
 		element.dataset.dragging = 'true'
 		element.dispatchEvent(
 			new CustomEvent('dragstart', { bubbles: true, detail: { instance: config.componentInstance } })
@@ -256,17 +281,38 @@ export class DragService extends Singleton {
 		const moving = (e: PointerEvent) => {
 			strategy.move(element, shift, start, config, e)
 
+			const elementCoords = element.getBoundingClientRect()
+			const elementDelta = {
+				x: elementCoords.left - initialPosition.left,
+				y: elementCoords.top - initialPosition.top,
+				center: {
+					x: elementCoords.left + elementCoords.width / 2 - initialPosition.center.x,
+					y: elementCoords.top + elementCoords.height / 2 - initialPosition.center.y
+				}
+			}
 			element.dispatchEvent(
-				new CustomEvent('dragmove', { bubbles: true, detail: { instance: config.componentInstance } })
+				new CustomEvent('dragmove', {
+					bubbles: true,
+					detail: {
+						instance: config.componentInstance,
+						elementDelta
+					}
+				})
 			)
 		}
 
 		const release = (e: PointerEvent) => {
 			const delta = { x: e.clientX - start.x, y: e.clientY - start.y }
 			const isThresholdPassed = strategy.checkThreshold(delta, config.threshold)
+			let swipeDirection: DragCustomEvent['detail']['direction'] = null
+
 			if (config.snap && (!isThresholdPassed.x || !isThresholdPassed.y)) {
-				element.style.top = initialPosition.y + 'px'
-				element.style.left = initialPosition.x + 'px'
+				strategy.snap(element, initialPosition)
+			}
+			if (isThresholdPassed.x) {
+				swipeDirection = delta.x > 0 ? 'right' : 'left'
+			} else if (isThresholdPassed.y) {
+				swipeDirection = delta.y > 0 ? 'down' : 'up'
 			}
 
 			element.dataset.dragging = 'false'
@@ -279,8 +325,9 @@ export class DragService extends Singleton {
 					bubbles: true,
 					detail: {
 						instance: config.componentInstance,
-						thresholdPassed: strategy.checkThreshold(delta, config.threshold),
-						isInView: strategy.isInView(element)
+						thresholdPassed: isThresholdPassed,
+						isInView: strategy.isInView(element),
+						direction: swipeDirection
 					}
 				})
 			)

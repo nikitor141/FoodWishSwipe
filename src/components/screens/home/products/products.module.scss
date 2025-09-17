@@ -1,2 +1,6 @@
 @use '@/styles/functions' as f;
 @use '@/styles/variables' as *;
+
+.products__list {
+	display: grid;
+}
