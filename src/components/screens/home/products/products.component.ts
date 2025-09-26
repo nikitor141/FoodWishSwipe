@@ -2,7 +2,7 @@ import { ProductCard } from '@components/screens/home/products/product-card/prod
 import { Component } from '@core/component/component'
 import { ProductsManagerService } from '@core/services/products-manager.service.ts'
 import { RenderService } from '@core/services/render.service'
-import { Product } from '@/api/products.service.ts'
+import { Product } from '@/api/products-fetcher.service.ts'
 import styles from './products.module.scss'
 import template from './products.template.html?raw'
 

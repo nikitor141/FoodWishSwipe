@@ -20,7 +20,7 @@ export interface Excluded {
 type RandomProductsArgs = { count: number; excluded: Excluded }
 type ProductByIdArgs = { id: number }
 
-export class ProductsService extends Singleton {
+export class ProductsFetcherService extends Singleton {
 	protected constructor() {
 		super()
 	}

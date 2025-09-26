@@ -2,7 +2,7 @@ import { Component } from '@core/component/component.ts'
 import { DragConfig, DragCustomEvent, DragService } from '@core/services/drag.service.ts'
 import { ProductsManagerService } from '@core/services/products-manager.service.ts'
 import { RenderService } from '@core/services/render.service.ts'
-import { Product } from '@/api/products.service.ts'
+import { Product } from '@/api/products-fetcher.service.ts'
 import styles from './product-card.module.scss'
 import template from './product-card.template.html?raw'
 
