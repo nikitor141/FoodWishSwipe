@@ -248,7 +248,7 @@ export class DragService extends Singleton {
 			this.#produceDrag(element, config, initialPosition, e)
 		}
 
-		element.addEventListener('pointerdown', this.#onPointerDown)
+		element.addEventListener('pointerdown', this.#onPointerDown, { passive: true })
 	}
 
 	detach(element: HTMLElement) {
@@ -333,8 +333,8 @@ export class DragService extends Singleton {
 			)
 		}
 
-		element.addEventListener('pointermove', moving)
-		element.addEventListener('pointerup', release)
+		element.addEventListener('pointermove', moving, { passive: true })
+		element.addEventListener('pointerup', release, { passive: true })
 		element.setPointerCapture(e.pointerId)
 	}
 }

@@ -124,6 +124,19 @@ export class ProductsManagerService extends Singleton {
 	}
 
 	//todo
+	// сохранится categories: [], subcategories: [123,115,2345], products[63463,3452,135]
+	// после обновления страницы первый запрос будет такой же
+	// после свайпа все сбросится: categories: [], subcategories: [], products[952]
+	//
+	// сохранится categories: [1310], subcategories: [123,115,2345], products[63463,3452,135]
+	// после обновления страницы первый запрос будет такой же
+	// после свайпа сбросится все кроме categories: categories: [1310], subcategories: [], products[9034]
+	//
+	// Возможно имеет смысл переписать сложные счетчики и структуры данных на что-то проще с использованием переписанного API.
+	// Например, получить все возможные категории и подкатегории, составить из них чекбоксы в древовидной структуре для ui,
+	// все вычисления производить относительно этого.
+
+	//todo
 	#removeCategoryFromExcluded(cat: ExcludedProduct['cat']) {
 		this.#categoriesExcluded.delete(cat)
 
@@ -136,7 +149,7 @@ export class ProductsManagerService extends Singleton {
 	}
 
 	#saveExcludedState() {
-		this.store.debouncedUpdateState('excluded', this.getExcluded())
+		this.store.debouncedUpdateState('excluded', { categories: this.getExcluded().categories })
 	}
 
 	#clearSubcategoriesByCategory(cat: ExcludedProduct['cat']) {
@@ -201,7 +214,7 @@ export class ProductsManagerService extends Singleton {
 	async #fill() {
 		if (this.store.state.excluded) this.#categoriesExcluded = new Set(this.store.state.excluded.categories)
 
-		const products: Product[] = await this.#requestProducts(this.store.state.excluded ?? this.getExcluded())
+		const products: Product[] = await this.#requestProducts(this.getExcluded())
 
 		for (const product of products) {
 			if (this.#active.size < this.#activeLimit) {
