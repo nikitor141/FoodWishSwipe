@@ -25,7 +25,7 @@ $devices: (
 
 @property --angle {
 	syntax: '<angle>';
-	inherits: false;
+	inherits: true;
 	initial-value: 0deg;
 }
 
@@ -33,13 +33,13 @@ $devices: (
 	$deg: 135deg,
 	$borderWidth: f.rem(1),
 	$colors: (
-		f.cl($cd-glass-border, 0.25),
-		f.cl($cd-glass-border, 0.05),
-		f.cl($cd-glass-border, 0.25)
+		f.cl($cd-glass-border, $a: 0.3),
+		f.cl($cd-glass-border, $a: 0.05),
+		f.cl($cd-glass-border, $a: 0.3)
 	),
 	$animate: false
 ) {
-	--angle: $deg;
+	--angle: #{$deg};
 	position: relative;
 
 	&::before {
@@ -69,14 +69,14 @@ $devices: (
 	}
 }
 
-@mixin btn($btn-width: 45, $btn-height: 45) {
+@mixin btn($btn-width: 35, $btn-height: 35) {
 	@include glassyBorder();
 	display: flex;
 	align-items: center;
 	justify-content: center;
 	width: f.rem($btn-width);
 	height: f.rem($btn-height);
-	background-color: f.cl($cd-glass-background, 0.25);
+	background-color: f.cl($cd-glass-background, $a: 0.25);
 	border-radius: 50%;
 	svg {
 		width: 50%;

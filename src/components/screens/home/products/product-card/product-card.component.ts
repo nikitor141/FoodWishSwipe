@@ -12,20 +12,21 @@ export class ProductCard implements Component {
 	dragService: DragService = DragService.instance
 	productsManagerService: ProductsManagerService = ProductsManagerService.instance
 	product: Product
+	#isDestroying: boolean = false
 
 	dragConfig: DragConfig = {
 		componentInstance: this,
 		direction: 'horizontal',
 		threshold: 75,
 		resistance: 5,
-		snap: true
+		snap: { animation: true, forwards: true }
 	}
 
 	constructor(product: Product) {
 		this.product = product
 	}
 
-	#produceDragMove = (e: DragCustomEvent<this>): void => {
+	#handleDragMove = (e: DragCustomEvent<this>): void => {
 		const dx = e.detail.elementDelta.center.x
 
 		const t = Math.min(1, Math.abs(dx) / this.dragConfig.threshold)
@@ -50,44 +51,67 @@ export class ProductCard implements Component {
 		}
 	}
 
-	#produceDragend = (e: DragCustomEvent<this>): void => {
-		this.element.style.rotate = null
-		this.element.style.opacity = null
+	#handleDragend = (e: DragCustomEvent<this>): void => {
 		this.element.style.removeProperty('--card-gradient-negative-opacity')
 		this.element.style.removeProperty('--card-gradient-positive-opacity')
 		this.element.style.removeProperty('--card-gradient-positive-end')
 		this.element.style.removeProperty('--card-gradient-negative-end')
 
-		if (e.detail.thresholdPassed.x) this.productsManagerService.swipe(e.detail.instance, e.detail.direction)
+		if (!e.detail.thresholdPassed.x) {
+			this.element.style.rotate = null
+			this.element.style.opacity = null
+		} else {
+			this.productsManagerService.swipe(e.detail.instance.product, e.detail.direction)
+		}
 	}
 
+	//todo? #addListenersRequiredReadyDOM
 	#addListeners(): void {
 		this.dragService.attach(this.element, this.dragConfig)
 
-		this.element.addEventListener('dragmove', this.#produceDragMove)
-		this.element.addEventListener('dragend', this.#produceDragend)
+		this.element.addEventListener('dragmove', this.#handleDragMove)
+		this.element.addEventListener('dragend', this.#handleDragend)
 	}
 
-	mount(parent: HTMLElement): void {
+	mount(parent: HTMLElement, method: 'append' | 'prepend'): void {
 		if (!this.element) this.element = this.render()
 
-		parent.prepend(this.element)
-		this.#addListeners()
+		parent[method](this.element)
+
+		requestAnimationFrame(() => {
+			if (!this.element || this.#isDestroying) return
+			this.#addListeners()
+		})
 	}
 
-	destroy() {
-		this.dragService.detach(this.element)
-		this.element.remove()
+	destroy(direction?: DragCustomEvent['detail']['direction']) {
+		if (this.#isDestroying) return
+
+		const clear = () => {
+			this.dragService.detach(this.element)
+			this.element.onanimationend = null
+			this.element.remove()
+			this.element = null
+		}
+
+		this.#isDestroying = true
+
+		if (direction) {
+			this.element.classList.add(styles[`product-card--vanishing-${direction}`])
+			this.element.onanimationend = clear
+		} else {
+			clear()
+		}
 	}
 
 	render(): HTMLElement {
 		this.element = this.renderService.htmlToElement(template, [], styles) as HTMLElement
 
-		const subcategoryEl: HTMLSpanElement = this.element.querySelector(`.${styles['product-card__tag-subcategory']}`)
-		const categoryEl: HTMLSpanElement = this.element.querySelector(`.${styles['product-card__tag-category']}`)
-		const nameLinkEl: HTMLAnchorElement = this.element.querySelector(`.${styles['product-card__name']} a`)
-		const linkEl: HTMLAnchorElement = this.element.querySelector(`.${styles['product-card__image']}`)
-		const priceMainEl = this.element.querySelector(`.${styles['product-card__price']} span`)
+		const subcategoryEl = this.element.querySelector<HTMLSpanElement>(`.${styles['product-card__tag-subcategory']}`)
+		const categoryEl = this.element.querySelector<HTMLSpanElement>(`.${styles['product-card__tag-category']}`)
+		const nameLinkEl = this.element.querySelector<HTMLAnchorElement>(`.${styles['product-card__name']} a`)
+		const linkEl = this.element.querySelector<HTMLAnchorElement>(`.${styles['product-card__image']}`)
+		const priceMainEl = this.element.querySelector<HTMLSpanElement>(`.${styles['product-card__price']} span`)
 		const pricePennyEl = this.element.querySelector(`.${styles['product-card__price']} sup`)
 		const imgEl: HTMLImageElement = linkEl.querySelector('img')
 

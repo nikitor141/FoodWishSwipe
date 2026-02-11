@@ -13,6 +13,5 @@ export function imgToPicture(tag: HTMLImageElement): HTMLPictureElement {
 		</picture>
 	`.trim()
 
-	const picture = template.content.firstElementChild as HTMLPictureElement
-	return picture
+	return template.content.firstElementChild as HTMLPictureElement
 }

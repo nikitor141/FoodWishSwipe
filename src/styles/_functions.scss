@@ -1,18 +1,59 @@
 @use 'sass:string';
 @use 'sass:meta';
+@use 'sass:math';
 
-@function cl($name, $opacity: 1) {
+//@function cl($name, $opacity: 1) {
+//	$name: string.unquote($name);
+//	@if meta.type-of($opacity) == 'number' {
+//		@if $opacity < 1 {
+//			@return color-mix(in srgb, transparent #{100% - $opacity * 100%}, var(--color-#{$name}));
+//		} @else {
+//			@return var(--color-#{$name});
+//		}
+//	}
+//	@return color-mix(in srgb, transparent calc(100% - (#{$opacity} * 100%)), var(--color-#{$name}));
+//}
+
+// l - lightness <number> | <percentage> (0 - 1 | 0% - 100%)
+// c - chroma (amount of color). (0.4 | 100%) - highest value
+// h - hue - <angle-value> (0 - 360)
+
+//usage:
+// cl($cd-foo,
+// $l: 'l' - default
+// |
+// 'calc(l * 0.4)' - уменьшить на 60% от l
+// 'calc(l - 0.4)' - уменьшить на 40%
+// |
+// <percentage> | <number> - заменить l
+// ,
+// $c: 'c' - default
+// |
+// 'calc(c * 0.1)' - 10% от c
+// |
+// 100% | 0.4 - заменить c
+// ,
+// $h: 'h' - default
+// |
+// calc(h + 40) - +40deg к h
+// |
+// <angle-value> | <number> (0-360) - заменить
+// )
+
+@function cl($name, $l: 'l', $c: 'c', $h: 'h', $a: 1) {
 	$name: string.unquote($name);
-	@if meta.type-of($opacity) == 'number' {
-		@if $opacity < 1 {
-			@return color-mix(in srgb, transparent #{100% - $opacity * 100%}, var(--color-#{$name}));
-		} @else {
-			@return var(--color-#{$name});
+	$var: var(--color-#{$name});
+
+	@if $l == 'l' and $c == 'c' and $h == 'h' {
+		@if $a != 1 {
+			@return rgb(from $var r g b / $a);
 		}
+		@return $var;
 	}
-	@return color-mix(in srgb, transparent calc(100% - (#{$opacity} * 100%)), var(--color-#{$name}));
+
+	@return oklch(from $var #{$l} #{$c} #{$h} / #{$a});
 }
 
 @function rem($pixels) {
-	@return calc($pixels / 10) + rem;
+	@return calc(math.div($pixels, 10)) * 1rem;
 }

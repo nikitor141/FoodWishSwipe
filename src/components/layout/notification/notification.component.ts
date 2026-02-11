@@ -21,21 +21,26 @@ export class Notification implements Component {
 		this.type = type
 	}
 
+	// todo? #addListenersRequiredReadyDOM
 	#addListeners(): void {
 		this.dragService.attach(this.element, {
 			componentInstance: this,
 			direction: 'vertical',
 			threshold: 150,
 			resistance: 1,
-			snap: true
+			snap: { animation: true, forwards: true }
 		})
 	}
 
-	mount(parent: HTMLElement): void {
+	mount(parent: HTMLElement, method: 'append' | 'prepend'): void {
 		if (!this.element) this.element = this.render()
 
-		parent.prepend(this.element)
-		this.#addListeners()
+		parent[method](this.element)
+
+		requestAnimationFrame(() => {
+			if (!this.element || this.#isDestroying) return
+			this.#addListeners()
+		})
 	}
 
 	destroy(): void {
@@ -59,16 +64,14 @@ export class Notification implements Component {
 
 		this.element.textContent = this.message
 
-		requestAnimationFrame(() => {
-			const classNames = {
-				positive: styles['notification--positive'],
-				negative: styles['notification--negative'],
-				neutral: styles['notification--neutral']
-			}
-			const className = classNames[this.type]
+		const classNames = {
+			positive: styles['notification--positive'],
+			negative: styles['notification--negative'],
+			neutral: styles['notification--neutral']
+		}
+		const className = classNames[this.type]
 
-			this.element.classList.add(className)
-		})
+		this.element.classList.add(className)
 
 		return this.element
 	}

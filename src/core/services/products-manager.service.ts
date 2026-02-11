@@ -1,205 +1,251 @@
-import { ProductCard } from '@components/screens/home/products/product-card/product-card.component.ts'
 import { DragCustomEvent } from '@core/services/drag.service.ts'
 import { NotificationService } from '@core/services/notification.service.ts'
+import { ObserverService } from '@core/services/observer.service.ts'
 import { Store } from '@core/store/store.ts'
+import { ExcludedAPI, ExcludedRuntime } from '@core/types/excluded.types.ts'
 import { debounce } from '@utils/debounce.ts'
+import { getAsObject } from '@utils/getAsObject.ts'
 import { Singleton } from '@utils/singleton.ts'
-import { Excluded, Product, ProductsFetcherService } from '@/api/products-fetcher.service.ts'
+import { AllCategories, Product, ProductsFetcherService } from '@/api/products-fetcher.service.ts'
 
-interface Listener {
-	refill(type: 'add' | 'delete', product: Product): void
+export interface ProductsManagerEvents {
+	'products-active-add': { product: Product; direction?: DragCustomEvent['detail']['direction'] }
+	'products-active-delete': { product: Product; direction?: DragCustomEvent['detail']['direction'] }
+	'category-excluded': number
+	'subcategory-excluded': number
+	'category-included': number
+	'subcategory-included': number
 }
-interface ExcludedProduct {
-	id: Product['id']
-	cat: Product['categoryId']
-	subCat: Product['subcategoryId']
-}
+
+export type ProductsManagerEvent = {
+	[K in keyof ProductsManagerEvents]: { type: K; data: ProductsManagerEvents[K] }
+}[keyof ProductsManagerEvents]
 
 export class ProductsManagerService extends Singleton {
 	productsFetcherService: ProductsFetcherService = ProductsFetcherService.instance
 	notificationService: NotificationService = NotificationService.instance
+	observerService: ObserverService = ObserverService.instance
 	store: Store = Store.instance
 
 	#activeLimit: number = 3
 	#batchSize: number = 25
 	#queue: Set<Product> = new Set()
 	#active: Set<Product> = new Set()
-	#listeners: Set<Listener> = new Set()
+	#ready: boolean = false
+	#pending: boolean = false
 
-	#productCardsByProduct: WeakMap<Product, ProductCard> = new WeakMap()
-	#subcategoriesByCategory: Map<ExcludedProduct['cat'], Set<ExcludedProduct['subCat']>> = new Map()
-	#productsExcluded: Map<ExcludedProduct['id'], ExcludedProduct> = new Map()
-	#subcategoriesExcluded: Map<
-		ExcludedProduct['subCat'],
-		{ subCat: ExcludedProduct['subCat']; cat: ExcludedProduct['cat'] }
-	> = new Map()
-	#categoriesExcluded: Set<ExcludedProduct['cat']> = new Set()
-	#subcategoryCounter: Map<ExcludedProduct['subCat'], { products: Set<ExcludedProduct['id']> }> = new Map()
-	#categoryCounter: Map<ExcludedProduct['cat'], { subCats: Set<ExcludedProduct['subCat']> }> = new Map()
+	#allCategories: AllCategories | null = null
+	#allCategoriesPromise: Promise<AllCategories> | null = null
+
+	#excluded: ExcludedRuntime = {
+		categories: new Set(this.store.state.excluded?.categories ?? []),
+		subcategories: new Set(this.store.state.excluded?.subcategories ?? []),
+		productsBySubcategory: new Map(
+			Object.entries(this.store.state.excluded?.productsBySubcategory ?? {}).map(([k, v]) => [+k, new Set(v)])
+		),
+		products: new Set(this.store.state.excluded?.products ?? [])
+	}
+	#notify = this.observerService.makeObservable<ProductsManagerEvents>(this, () => this.store.state.screen)
 
 	protected constructor() {
 		super()
-		void this.#fill()
-	}
 
-	subscribe(listener: Listener) {
-		this.#listeners.add(listener)
+		void this.#fill()
 	}
 
 	getActive() {
 		return this.#active
 	}
 
-	addProductCard(product: Product, productCard: ProductCard): void {
-		this.#productCardsByProduct.set(product, productCard)
+	async getAllCategories() {
+		if (this.#allCategories) return this.#allCategories
+
+		if (this.#allCategoriesPromise) return this.#allCategoriesPromise
+
+		this.#allCategoriesPromise = this.productsFetcherService.getAllCategories()
+		this.#allCategories = await this.#allCategoriesPromise
+		this.#allCategoriesPromise = null
+
+		return this.#allCategories
 	}
 
-	swipe(productCard: ProductCard, direction: DragCustomEvent['detail']['direction']) {
+	getExcluded(): ExcludedAPI {
+		return {
+			categories: [...this.#excluded.categories],
+			subcategories: [...this.#excluded.subcategories],
+			products: [...this.#excluded.products]
+		}
+	}
+	getExcludedRuntime(): ExcludedRuntime {
+		return this.#excluded
+	}
+
+	isReady() {
+		return this.#ready
+	}
+
+	swipe(product: Product, direction: DragCustomEvent['detail']['direction']) {
 		if (direction === 'left') {
-			this.#produceExclude(productCard)
+			this.#excludeProduct(product)
 		}
 		if (direction === 'right') {
-			this.#produceFavorites(productCard)
+			this.#addToWishList(product)
 		}
 
-		this.#active.delete(productCard.product)
-		productCard.destroy()
+		this.#mutateActive('delete', product, direction)
 
-		if (this.#queue.size <= this.#activeLimit) void this.#refill()
-		this.#refillActive()
+		this.#ensureActiveFilled()
 	}
 
-	#produceFavorites(productCard) {}
+	#mutateActive(prop: 'add' | 'delete', product: Product, direction?: DragCustomEvent['detail']['direction']) {
+		this.#active[prop](product)
+		this.#notify(`products-active-${prop}`, { product, direction })
+	}
 
-	#produceExclude(productCard: ProductCard) {
-		const { id, subcategoryId: subCat, categoryId: cat } = productCard.product
-
-		// Записываем продукт в id индекс
-		this.#productsExcluded.set(id, { id, subCat, cat })
-		// Записываем подкатегорию в cat индекс
-		if (!this.#subcategoriesByCategory.has(cat)) this.#subcategoriesByCategory.set(cat, new Set())
-		this.#subcategoriesByCategory.get(cat).add(subCat)
-		// Считаем подкатегории
-		if (!this.#subcategoryCounter.has(subCat)) this.#subcategoryCounter.set(subCat, { products: new Set() })
-		const subCatCounter = this.#subcategoryCounter.get(subCat)
-		subCatCounter.products.add(id)
-
-		// Проверяем количество товаров
-		if (subCatCounter.products.size === 5) {
-			// Очищаем все продукты этой подкатегории
-			this.#clearProductsBySubcategory(subCat)
-			// Записываем подкатегорию в subCat индекс
-			this.#subcategoriesExcluded.set(subCat, { subCat, cat })
-			// Считаем категории
-			if (!this.#categoryCounter.has(cat)) this.#categoryCounter.set(cat, { subCats: new Set() })
-			const catCounter = this.#categoryCounter.get(cat)
-			catCounter.subCats.add(subCat)
-
-			// Проверяем количество подкатегорий
-			if (catCounter.subCats.size === 2) {
-				// Очищаем все подкатегории и продукты категории
-				this.#clearSubcategoriesByCategory(cat)
-				// Записываем категорию в исключённые
-				this.#categoriesExcluded.add(cat)
-			}
+	#ensureActiveFilled = debounce(() => {
+		if (this.#queue.size <= this.#activeLimit) {
+			void this.#refill() // в refill есть вызов refillActive
+			return
 		}
 
-		// Сохраняем состояние
+		this.#refillActive()
+	}, 0)
+
+	//todo notification.confirm
+	#shouldExcludeSubcategory(subCatId: number) {
+		// return this.#excluded.productsBySubcategory.get(subCatId).size % 5 === 0
+		return false
+		// && confirm('Исключить всю подкатегорию?')
+	}
+
+	#shouldExcludeCategory(catId: number) {
+		const excludedSubCatsCount = this.#allCategories.categories[catId].subcategoryIds.filter(subCatId =>
+			this.#excluded.subcategories.has(subCatId)
+		).length // todo убрать filter добавить структуру Map<cat, subCats>
+		// return excludedSubCatsCount > 0 && excludedSubCatsCount % 2 === 0
+		return excludedSubCatsCount === this.#allCategories.categories[catId].subcategoryIds.length
+		// && confirm('Исключить всю категорию?')
+	}
+
+	#addToWishList(product: Product) {}
+
+	#excludeProduct({ categoryId, subcategoryId, id }: Product) {
+		if (!this.#excluded.productsBySubcategory.has(subcategoryId))
+			this.#excluded.productsBySubcategory.set(subcategoryId, new Set())
+
+		let subcategoryProductsSet = this.#excluded.productsBySubcategory.get(subcategoryId)
+
+		subcategoryProductsSet.add(id)
+		this.#excluded.products.add(id)
+
+		// Исключаем подкатегорию по условию
+		if (this.#shouldExcludeSubcategory(subcategoryId)) {
+			this.excludeSubcategory(subcategoryId, categoryId)
+		}
+
 		this.#saveExcludedState()
 	}
 
-	#clearProductsBySubcategory(subCat: ExcludedProduct['subCat']) {
-		// Удаляем ВСЕ продукты, которые вообще встречались в этой подкатегории, если не были удалены ранее
-		const subCatData = this.#subcategoryCounter.get(subCat)
-		if (subCatData) {
-			for (const productId of subCatData.products) {
-				this.#productsExcluded.delete(productId)
-			}
-			// Удаляем подкатегорию из счетчика
-			this.#subcategoryCounter.delete(subCat)
+	excludeSubcategory(subCatId: number, catId: number) {
+		this.#excluded.subcategories.add(subCatId)
+		this.#notify('subcategory-excluded', subCatId)
+
+		this.#purgeProductsBySubcategory(subCatId)
+
+		const activeOrQueueWasFiltered = this.#purgeActiveAndQueueBy('subcategoryId', subCatId)
+		if (activeOrQueueWasFiltered) this.#ensureActiveFilled()
+
+		// Исключаем категорию по условию
+		if (this.#shouldExcludeCategory(catId)) {
+			this.excludeCategory(catId)
 		}
 
-		// Удаляем из очереди и активных
-		if (this.#purgeActiveAndQueueBy('subcategoryId', subCat)) this.#refillActive()
+		this.#saveExcludedState()
 	}
 
-	//todo
-	// сохранится categories: [], subcategories: [123,115,2345], products[63463,3452,135]
-	// после обновления страницы первый запрос будет такой же
-	// после свайпа все сбросится: categories: [], subcategories: [], products[952]
-	//
-	// сохранится categories: [1310], subcategories: [123,115,2345], products[63463,3452,135]
-	// после обновления страницы первый запрос будет такой же
-	// после свайпа сбросится все кроме categories: categories: [1310], subcategories: [], products[9034]
-	//
-	// Возможно имеет смысл переписать сложные счетчики и структуры данных на что-то проще с использованием переписанного API.
-	// Например, получить все возможные категории и подкатегории, составить из них чекбоксы в древовидной структуре для ui,
-	// все вычисления производить относительно этого.
+	excludeCategory(catId: number) {
+		this.#allCategories.categories[catId].subcategoryIds.forEach(subCatId => {
+			// this.#excluded.subcategories.delete(subCatId)
 
-	//todo
-	#removeCategoryFromExcluded(cat: ExcludedProduct['cat']) {
-		this.#categoriesExcluded.delete(cat)
-
-		void this.#refill().then(() => {
-			this.#refillActive()
+			this.#purgeProductsBySubcategory(subCatId)
+			this.includeSubcategory(subCatId, catId)
 		})
 
-		// Сохраняем состояние
+		this.#excluded.categories.add(catId)
+		this.#notify('category-excluded', catId)
+
+		const activeOrQueueWasFiltered = this.#purgeActiveAndQueueBy('categoryId', catId)
+		if (activeOrQueueWasFiltered) this.#ensureActiveFilled()
+
 		this.#saveExcludedState()
+	}
+
+	includeSubcategory(subCatId: number, catId: number) {
+		const categoryWasIncluded = this.includeCategory(catId)
+		if (categoryWasIncluded) {
+			this.#allCategories.categories[catId].subcategoryIds.forEach(siblingSubCatId => {
+				if (siblingSubCatId === subCatId) return
+				this.excludeSubcategory(siblingSubCatId, catId)
+			})
+		}
+		// this.includeCategory(catId)
+
+		this.#purgeProductsBySubcategory(subCatId)
+		this.#excluded.subcategories.delete(subCatId)
+
+		this.#notify('subcategory-included', subCatId)
+		this.#ensureActiveFilled()
+		this.#saveExcludedState()
+	}
+
+	includeCategory(catId: number) {
+		const wasIncluded = this.#excluded.categories.delete(catId)
+		if (!wasIncluded) return wasIncluded
+
+		this.#notify('category-included', catId)
+		this.#ensureActiveFilled()
+		this.#saveExcludedState()
+
+		return wasIncluded
 	}
 
 	#saveExcludedState() {
-		this.store.debouncedUpdateState('excluded', { categories: this.getExcluded().categories })
+		this.store.debouncedUpdateState('excluded', {
+			...this.getExcluded(),
+			productsBySubcategory: getAsObject(this.#excluded.productsBySubcategory)
+		})
 	}
 
-	#clearSubcategoriesByCategory(cat: ExcludedProduct['cat']) {
-		//  Удаляем ВСЕ подкатегории, которые вообще встречались в этой категории
-		const allSubCats = this.#subcategoriesByCategory.get(cat)
-		for (const subCat of allSubCats) {
-			this.#subcategoriesExcluded.delete(subCat)
-			this.#clearProductsBySubcategory(subCat)
+	#purgeProductsBySubcategory(subCatId: number) {
+		const productsSet = this.#excluded.productsBySubcategory.get(subCatId)
+		if (!productsSet) return
+
+		for (const id of productsSet) {
+			this.#excluded.products.delete(id)
 		}
-		// Удаляем саму запись категории
-		this.#subcategoriesByCategory.delete(cat)
-		this.#categoryCounter.delete(cat)
 
-		// Удаляем из очереди и активных
-		if (this.#purgeActiveAndQueueBy('categoryId', cat)) this.#refillActive()
-
-		// Сохраняем состояние
-		this.#saveExcludedState()
+		this.#excluded.productsBySubcategory.delete(subCatId)
 	}
 
-	#purgeActiveAndQueueBy(
-		prop: 'subcategoryId' | 'categoryId',
-		ref: ExcludedProduct['subCat'] | ExcludedProduct['cat']
-	): boolean {
+	#purgeActiveAndQueueBy(prop: 'subcategoryId' | 'categoryId', ref: number): boolean {
+		// Подстраховка от мутаций во время итераций
 		for (const p of Array.from(this.#queue)) {
 			if (p[prop] === ref) {
 				this.#queue.delete(p)
 			}
 		}
 		let activeWasFiltered = false
-		// Из-за мутаций во время итераций подстраховался
+		// Подстраховка от мутаций во время итераций
 		for (const p of Array.from(this.#active)) {
 			if (p[prop] === ref) {
-				this.#active.delete(p)
-				this.#productCardsByProduct.get(p).destroy()
+				this.#mutateActive('delete', p)
 				activeWasFiltered = true
 			}
 		}
 		return activeWasFiltered
 	}
 
-	getExcluded(): Excluded {
-		return {
-			categories: Array.from(this.#categoriesExcluded),
-			subcategories: Array.from(this.#subcategoriesExcluded.keys()),
-			products: Array.from(this.#productsExcluded.keys())
-		}
-	}
-
-	async #requestProducts(excluded: Excluded): Promise<Product[]> {
+	async #requestProducts(excluded: ExcludedAPI): Promise<Product[]> {
 		try {
 			const countToFill = this.#batchSize - this.#queue.size
 			if (!countToFill) return []
@@ -212,42 +258,43 @@ export class ProductsManagerService extends Singleton {
 	}
 
 	async #fill() {
-		if (this.store.state.excluded) this.#categoriesExcluded = new Set(this.store.state.excluded.categories)
+		if (!this.#allCategories) await this.getAllCategories()
 
 		const products: Product[] = await this.#requestProducts(this.getExcluded())
-
+		if (!products.length) this.notificationService.show('Товары закончились. Загляните в фильтры!', 'neutral')
 		for (const product of products) {
 			if (this.#active.size < this.#activeLimit) {
-				this.#active.add(product)
-				this.#notify('add', product)
+				this.#mutateActive('add', product)
 				continue
 			}
 
 			this.#queue.add(product)
 		}
+		this.#ready = true
 	}
 	#refillActive() {
-		const nextProduct = this.#queue.values().next().value
-		if (!nextProduct) return
-		this.#queue.delete(nextProduct)
+		// queue мутирует, поэтому так, чтобы не плодить оберточный array
+		while (this.#active.size < this.#activeLimit) {
+			const nextProduct = this.#queue.values().next().value
+			if (!nextProduct) break
 
-		if (this.#active.size === this.#activeLimit) return
+			this.#queue.delete(nextProduct)
 
-		this.#active.add(nextProduct)
-		this.#notify('add', nextProduct)
+			this.#mutateActive('add', nextProduct)
+		}
 	}
 
 	async #refill() {
-		const products: Product[] = await this.#requestProducts(this.getExcluded())
+		if (this.#pending) return
+		this.#pending = true
 
+		const products: Product[] = await this.#requestProducts(this.getExcluded())
+		if (!products.length) this.notificationService.show('Товары закончились. Загляните в фильтры!', 'neutral')
 		for (const product of products) {
 			this.#queue.add(product)
 		}
-	}
+		this.#pending = false
 
-	#notify(...args: Parameters<Listener['refill']>) {
-		for (const listener of this.#listeners) {
-			listener.refill(...args)
-		}
+		this.#refillActive()
 	}
 }

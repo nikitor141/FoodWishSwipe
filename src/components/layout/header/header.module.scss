@@ -1,31 +1,40 @@
 @use '@/styles/functions' as f;
 @use '@/styles/variables' as *;
 @use '@/styles/mixins' as m;
+@use 'sass:math';
 
 .header {
 	@include m.glassyBorder(0deg, f.rem(1));
-	$btn-width: 45;
-	$btn-height: 45;
+	$btn-width: 35;
+	$btn-height: 35;
 	$gap: 20;
 
 	display: flex;
 	gap: f.rem($gap);
 	align-items: center;
 	justify-content: space-between;
-	padding: f.rem(20) f.rem(40);
-	margin: f.rem(20) auto;
-	background-color: f.cl($cd-glass-background, 0.45);
+	padding: f.rem(15) f.rem(30);
+	margin: f.rem(5) auto;
+	background-color: f.cl($cd-glass-background, $a: 0.45);
 	border-radius: f.rem(50);
 
 	&::after {
 		width: f.rem(2);
 		height: f.rem(20);
 		content: '';
-		background-color: f.cl($cd-glass-background, 0.5);
+		background-color: f.cl($cd-glass-background, $a: 0.5);
 		border-radius: f.rem(1);
 	}
 
+	[data-ui='theme-switcher'] {
+		order: 1;
+	}
+
 	&__nav {
+		&:not([data-init]) * {
+			transition: none;
+		}
+
 		position: relative;
 
 		ul {
@@ -40,9 +49,9 @@
 			right: 0;
 			left: 0;
 			height: f.rem($btn-height);
-			background-color: f.cl($cd-accent, 0.3);
-			border-radius: f.rem($btn-height / 2);
-			box-shadow: 0 0 f.rem(15) f.cl($cd-accent, 0.3);
+			background-color: f.cl($cd-accent, $a: 0.3);
+			border-radius: f.rem(math.div($btn-height, 2));
+			box-shadow: 0 0 f.rem(15) f.cl($cd-accent, $a: 0.3);
 
 			&--going-right {
 				transition:
@@ -58,7 +67,7 @@
 		}
 	}
 	&__nav-link {
-		@include m.btn();
+		@include m.btn($btn-width, $btn-height);
 		transition: color 0.3s 0.15s ease-out;
 
 		&--active {

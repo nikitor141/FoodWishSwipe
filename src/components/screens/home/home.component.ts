@@ -1,3 +1,4 @@
+import { CategoryFilter } from '@components/screens/home/category-filter/category-filter.component.ts'
 import { Products } from '@components/screens/home/products/products.component.ts'
 import { RenderService } from '@core/services/render.service'
 import { TITLE_HOME } from '@/constants/titles.constants'
@@ -19,7 +20,7 @@ export class Home extends BaseScreen {
 	}
 
 	render(): HTMLElement {
-		this.element = this.renderService.htmlToElement(template, [Products], styles) as HTMLElement
+		this.element = this.renderService.htmlToElement(template, [Products, CategoryFilter], styles) as HTMLElement
 
 		return this.element
 	}

@@ -1,4 +1,5 @@
 import { NotificationService } from '@core/services/notification.service'
+import { ObserverService } from '@core/services/observer.service.ts'
 import { Store } from '@core/store/store.ts'
 import { Layout } from '@/components/layout/layout.component'
 import { MESSAGE_REDIRECTED } from '@/constants/messages.constants'
@@ -8,11 +9,13 @@ import { ScreenSingleton } from '../component/base-screen.types'
 import { ROUTES } from './routes.data'
 
 export class Router extends Singleton {
+	#observerService: ObserverService = ObserverService.instance
 	#store: Store = Store.instance
+	#notificationService: NotificationService = NotificationService.instance
+
 	#routes: Record<string, ScreenSingleton> = ROUTES
 	#currentRoute!: ScreenSingleton | undefined
 	#layout: Layout = Layout.instance
-	#notificationService: NotificationService = NotificationService.instance
 
 	protected constructor() {
 		super()
@@ -52,7 +55,7 @@ export class Router extends Singleton {
 		this.#currentRoute = this.#routes[path]
 
 		if (!this.#currentRoute) {
-			this.#store.clearObservers(previousRoute) //очищаем страницу, с которой ушли на 404
+			this.#observerService.clearObservers(previousRoute) //очищаем страницу, с которой ушли на 404
 			this.navigate(HOME_URL)
 			this.#notificationService.show(MESSAGE_REDIRECTED, 'negative')
 			return
@@ -60,6 +63,7 @@ export class Router extends Singleton {
 
 		this.#currentRoute.instance.path ??= path
 		this.#store.updateState('screen', { previous: previousRoute, current: this.#currentRoute })
+		// код ниже может использовать state, чтобы получить актуальную информацию, поэтому такой порядок
 		this.#render()
 	}
 

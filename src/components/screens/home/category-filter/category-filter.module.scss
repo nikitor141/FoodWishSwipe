@@ -1,0 +1,59 @@
+@use '@/styles/functions' as f;
+@use '@/styles/variables' as *;
+@use '@/styles/mixins' as m;
+
+.category-filter {
+	@include m.glassyBorder(45deg);
+
+	position: fixed;
+	display: flex;
+	flex-direction: column;
+	width: 100%;
+	height: 100%;
+	padding: 0 0 calc(8dvh + f.rem(30));
+	user-select: none;
+	background-color: f.cl($cd-glass-background, $a: 0.45);
+	border-radius: f.rem(14) f.rem(14) 0 0;
+	backdrop-filter: $blur;
+	transition:
+		top 0.4s,
+		background-color 0.4s;
+
+	[data-theme='dark'] &[aria-expanded='true'] {
+		background-color: f.cl($cd-glass-background, $a: 0.45, $l: 'calc(l - 0.1)');
+	}
+
+	&[data-dragging='true'] {
+		transition: none;
+	}
+
+	&[aria-expanded='true'] {
+		top: 8dvh;
+	}
+	&[aria-expanded='false'] {
+		top: calc(100dvh - f.rem(24));
+	}
+
+	&__handle {
+		padding: f.rem(10) 0;
+
+		&::after {
+			display: block;
+			width: f.rem(40);
+			height: f.rem(4);
+			margin-inline: auto;
+			content: '';
+			background-color: f.cl($cd-accent, $a: 0.25);
+			border-radius: f.rem(2);
+		}
+	}
+
+	&__list {
+		display: grid;
+		grid-template-columns: auto;
+		padding: 0 f.rem(24);
+		overflow-y: auto;
+		font-size: f.rem(10);
+		mask: linear-gradient(to bottom, #0000, #000 5% 95%, #0000);
+	}
+}

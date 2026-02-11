@@ -6,8 +6,9 @@ export interface DragConfig {
 	componentInstance: Component
 	threshold?: number // минимальное расстояние для срабатывания
 	resistance?: number // сопротивление при перетаскивании
-	snap?: boolean // возврат на место или удаление
-	bounds?: DOMRect // ограничения движения
+	snap?: { animation: boolean; forwards: boolean } // возврат на место|анимировать?|не сбрасывать стили после прохождения threshold?
+	bounds?: { rect: DOMRect; sides: ('top' | 'right' | 'bottom' | 'left')[] } // ограничения движения
+	handles?: HTMLElement[] // элементы-ручка
 }
 interface Strategy {
 	move: (
@@ -20,7 +21,7 @@ interface Strategy {
 	checkThreshold: (delta: { x?: number; y?: number }, threshold: number) => { x?: boolean; y?: boolean }
 	checkBounds: (
 		element: HTMLElement,
-		bounds: DOMRect,
+		bounds: DragConfig['bounds']['rect'],
 		pendingCoords: { top?: number; left?: number }
 	) => {
 		top?: number
@@ -38,7 +39,9 @@ interface Strategy {
 	}
 	snap: (
 		element: HTMLElement,
-		initialPosition: { left: number; top: number; center: { x: number; y: number } }
+		initialGeometry: { width: number; height: number; left: number; top: number; center: { x: number; y: number } },
+		isThresholdPassed: { x?: boolean; y?: boolean },
+		snap: DragConfig['snap']
 	) => void
 }
 export type DragCustomEvent<T extends Component = Component> = CustomEvent<{
@@ -66,8 +69,10 @@ export class DragService extends Singleton {
 				left = startX - shiftX + appliedDelta
 
 				if (bounds) {
-					const bounded = this.checkBounds(element, bounds, { left })
-					left = bounded.left
+					const bounded = this.checkBounds(element, bounds.rect, { left })
+					for (const side of bounds.sides) {
+						if (bounded[`isAt${side[0].toUpperCase()}${side.slice(1)}`]) return
+					}
 				}
 
 				element.style.left = left + 'px'
@@ -87,13 +92,13 @@ export class DragService extends Singleton {
 				return { x: Math.abs(x) > threshold }
 			},
 
-			checkBounds: (element, bounds, { left }) => {
-				const maxLeft = bounds.right - element.offsetWidth
-				const correctedLeft = Math.max(bounds.left, Math.min(left, maxLeft))
+			checkBounds: (element, rect, { left }) => {
+				const maxLeft = rect.right - element.offsetWidth
+				const correctedLeft = Math.max(rect.left, Math.min(left, maxLeft))
 
 				return {
 					left: correctedLeft,
-					isAtLeft: left <= bounds.left,
+					isAtLeft: left <= rect.left,
 					isAtRight: left >= maxLeft
 				}
 			},
@@ -106,8 +111,28 @@ export class DragService extends Singleton {
 					bottomRight: !!document.elementFromPoint(elementCoords.right, elementCoords.bottom)
 				}
 			},
-			snap: (element, initialPosition) => {
-				element.style.left = initialPosition.left + 'px'
+			snap: (element, initialGeometry, { x: isThresholdPassed }, snap) => {
+				const shouldSnap = !isThresholdPassed || (isThresholdPassed && !snap.forwards)
+				if (!shouldSnap) return
+
+				if (!snap.animation) {
+					clearStyles()
+					return
+				}
+
+				element.style.left = initialGeometry.left + 'px'
+				element.ontransitionend = e => {
+					if (e.propertyName !== 'left') return
+					clearStyles()
+				}
+
+				function clearStyles() {
+					element.ontransitionend = null
+					element.style.width = null
+					element.style.height = null
+					element.style.left = null
+					element.style.position = null
+				}
 			}
 		},
 		vertical: {
@@ -119,8 +144,10 @@ export class DragService extends Singleton {
 				top = startY - shiftY + appliedDelta
 
 				if (bounds) {
-					const bounded = this.checkBounds(element, bounds, { top })
-					top = bounded.top
+					const bounded = this.checkBounds(element, bounds.rect, { top })
+					for (const side of bounds.sides) {
+						if (bounded[`isAt${side[0].toUpperCase()}${side.slice(1)}`]) return
+					}
 				}
 
 				element.style.top = top + 'px'
@@ -140,13 +167,13 @@ export class DragService extends Singleton {
 				return { y: Math.abs(y) > threshold }
 			},
 
-			checkBounds: (element, bounds, { top }) => {
-				const maxTop = bounds.bottom - element.offsetHeight
-				const correctedTop = Math.max(bounds.top, Math.min(top, maxTop))
+			checkBounds: (element, rect, { top }) => {
+				const maxTop = rect.bottom - element.offsetHeight
+				const correctedTop = Math.max(rect.top, Math.min(top, maxTop))
 
 				return {
 					top: correctedTop,
-					isAtTop: top <= bounds.top,
+					isAtTop: top <= rect.top,
 					isAtBottom: top >= maxTop
 				}
 			},
@@ -160,8 +187,28 @@ export class DragService extends Singleton {
 					bottomRight: !!document.elementFromPoint(elementCoords.right, elementCoords.bottom)
 				}
 			},
-			snap: (element, initialPosition) => {
-				element.style.top = initialPosition.top + 'px'
+			snap: (element, initialGeometry, { y: isThresholdPassed }, snap) => {
+				const shouldSnap = !isThresholdPassed || (isThresholdPassed && !snap.forwards)
+				if (!shouldSnap) return
+
+				if (!snap.animation) {
+					clearStyles()
+					return
+				}
+
+				element.style.top = initialGeometry.top + 'px'
+				element.ontransitionend = e => {
+					if (e.propertyName !== 'top') return
+					clearStyles()
+				}
+
+				function clearStyles() {
+					element.ontransitionend = null
+					element.style.width = null
+					element.style.height = null
+					element.style.top = null
+					element.style.position = null
+				}
 			}
 		},
 		both: {
@@ -171,32 +218,30 @@ export class DragService extends Singleton {
 				let top = start.y - shift.y + delta.y
 				let left = start.x - shift.x + delta.x
 
-				const appliedDelta = applyResistance(delta, threshold, resistance)
+				const appliedDelta = {
+					x: applyResistance(delta.x, threshold, resistance),
+					y: applyResistance(delta.y, threshold, resistance)
+				}
 				top = start.y - shift.y + appliedDelta.y
 				left = start.x - shift.x + appliedDelta.x
 
 				if (bounds) {
-					const bounded = this.checkBounds(element, bounds, { top, left })
-					top = bounded.top
-					left = bounded.left
+					const bounded = this.checkBounds(element, bounds.rect, { top, left })
+					for (const side of bounds.sides) {
+						if (bounded[`isAt${side[0].toUpperCase()}${side.slice(1)}`]) return
+					}
 				}
 
 				element.style.top = top + 'px'
 				element.style.left = left + 'px'
 
-				function applyResistance(delta: { x: number; y: number }, threshold = 0, resistance = 0) {
+				function applyResistance(delta: number, threshold: number = 0, resistance: number = 0) {
 					const T = Math.max(0, threshold)
 					const R = Math.max(0, resistance)
-					const aX = Math.abs(delta.x)
-					const sX = Math.sign(delta.x) || 1
-					const aY = Math.abs(delta.y)
-					const sY = Math.sign(delta.y) || 1
+					const a = Math.abs(delta)
+					const s = Math.sign(delta) || 1
 
-					if (aX <= T && aY <= T) return { x: delta.x, y: delta.y }
-					if (aX <= T) return { x: delta.x, y: sY * (T + (aY - T) / (1 + R)) }
-					if (aY <= T) return { y: delta.y, x: sX * (T + (aX - T) / (1 + R)) }
-
-					return { x: sX * (T + (aX - T) / (1 + R)), y: sY * (T + (aY - T) / (1 + R)) }
+					return a <= T ? delta : s * (T + (a - T) / (1 + R))
 				}
 			},
 
@@ -204,19 +249,19 @@ export class DragService extends Singleton {
 				return { x: Math.abs(x) > threshold, y: Math.abs(y) > threshold }
 			},
 
-			checkBounds: (element, bounds, { top, left }) => {
-				const maxTop = bounds.bottom - element.offsetHeight
-				const maxLeft = bounds.right - element.offsetWidth
+			checkBounds: (element, rect, { top, left }) => {
+				const maxTop = rect.bottom - element.offsetHeight
+				const maxLeft = rect.right - element.offsetWidth
 
-				const correctedTop = Math.max(bounds.top, Math.min(top, maxTop))
-				const correctedLeft = Math.max(bounds.left, Math.min(left, maxLeft))
+				const correctedTop = Math.max(rect.top, Math.min(top, maxTop))
+				const correctedLeft = Math.max(rect.left, Math.min(left, maxLeft))
 
 				return {
 					top: correctedTop,
 					left: correctedLeft,
-					isAtTop: top <= bounds.top,
+					isAtTop: top <= rect.top,
 					isAtBottom: top >= maxTop,
-					isAtLeft: left <= bounds.left,
+					isAtLeft: left <= rect.left,
 					isAtRight: left >= maxLeft
 				}
 			},
@@ -229,23 +274,72 @@ export class DragService extends Singleton {
 					bottomRight: !!document.elementFromPoint(elementCoords.right, elementCoords.bottom)
 				}
 			},
-			snap: (element, initialPosition) => {
-				element.style.top = initialPosition.top + 'px'
-				element.style.left = initialPosition.left + 'px'
+			snap: (element, initialGeometry, { x, y }, snap) => {
+				const isThresholdPassed = x && y
+				const shouldSnap = !isThresholdPassed || (isThresholdPassed && !snap.forwards)
+				if (!shouldSnap) return
+
+				if (!snap.animation) {
+					clearStyles()
+					return
+				}
+
+				element.style.top = initialGeometry.top + 'px'
+				element.style.left = initialGeometry.left + 'px'
+
+				Promise.all([
+					new Promise(resolve => {
+						element.ontransitionend = e => {
+							if (e.propertyName !== 'top') return
+							resolve(null)
+						}
+					}),
+					new Promise(resolve => {
+						element.ontransitionend = e => {
+							if (e.propertyName !== 'left') return
+							resolve(null)
+						}
+					})
+				]).then(clearStyles)
+
+				function clearStyles() {
+					element.ontransitionend = null
+					element.style.width = null
+					element.style.height = null
+					element.style.top = null
+					element.style.left = null
+					element.style.position = null
+				}
 			}
 		}
 	}
 
 	attach(element: HTMLElement, config: DragConfig) {
-		const elementCoords = element.getBoundingClientRect()
-		const initialPosition = {
-			left: elementCoords.left,
-			top: elementCoords.top,
-			center: { x: elementCoords.left + elementCoords.width / 2, y: elementCoords.top + elementCoords.height / 2 }
+		const rect = element.getBoundingClientRect()
+		//todo? initialGeometry высчитывать в другом месте?
+		const initialGeometry = {
+			width: rect.width,
+			height: rect.height,
+			left: rect.left,
+			top: rect.top,
+			center: { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 }
 		}
 
 		this.#onPointerDown = e => {
-			this.#produceDrag(element, config, initialPosition, e)
+			if (config.handles) {
+				const target = e.target as Node
+				const canDrag = config.handles.some(handle => {
+					if (handle !== element && handle.contains(target)) {
+						return true
+					}
+
+					return handle === element && target === element
+				})
+
+				if (!canDrag) return
+			}
+
+			this.#handleDrag(element, config, initialGeometry, e)
 		}
 
 		element.addEventListener('pointerdown', this.#onPointerDown, { passive: true })
@@ -255,14 +349,16 @@ export class DragService extends Singleton {
 		element.removeEventListener('pointerdown', this.#onPointerDown)
 	}
 
-	#produceDrag(
+	#handleDrag(
 		element: HTMLElement,
 		config: DragConfig,
-		initialPosition: { left: number; top: number; center: { x: number; y: number } },
+		initialGeometry: { width: number; height: number; left: number; top: number; center: { x: number; y: number } },
 		e: PointerEvent
 	) {
 		element.ondragstart = () => false
-		element.style.position = 'absolute'
+		element.style.position = 'fixed'
+		element.style.width = initialGeometry.width + 'px'
+		element.style.height = initialGeometry.height + 'px'
 		element.dataset.dragging = 'true'
 		element.dispatchEvent(
 			new CustomEvent('dragstart', { bubbles: true, detail: { instance: config.componentInstance } })
@@ -283,11 +379,11 @@ export class DragService extends Singleton {
 
 			const elementCoords = element.getBoundingClientRect()
 			const elementDelta = {
-				x: elementCoords.left - initialPosition.left,
-				y: elementCoords.top - initialPosition.top,
+				x: elementCoords.left - initialGeometry.left,
+				y: elementCoords.top - initialGeometry.top,
 				center: {
-					x: elementCoords.left + elementCoords.width / 2 - initialPosition.center.x,
-					y: elementCoords.top + elementCoords.height / 2 - initialPosition.center.y
+					x: elementCoords.left + elementCoords.width / 2 - initialGeometry.center.x,
+					y: elementCoords.top + elementCoords.height / 2 - initialGeometry.center.y
 				}
 			}
 			element.dispatchEvent(
@@ -306,9 +402,10 @@ export class DragService extends Singleton {
 			const isThresholdPassed = strategy.checkThreshold(delta, config.threshold)
 			let swipeDirection: DragCustomEvent['detail']['direction'] = null
 
-			if (config.snap && (!isThresholdPassed.x || !isThresholdPassed.y)) {
-				strategy.snap(element, initialPosition)
+			if (config.snap) {
+				strategy.snap(element, initialGeometry, isThresholdPassed, config.snap)
 			}
+
 			if (isThresholdPassed.x) {
 				swipeDirection = delta.x > 0 ? 'right' : 'left'
 			} else if (isThresholdPassed.y) {
@@ -336,5 +433,16 @@ export class DragService extends Singleton {
 		element.addEventListener('pointermove', moving, { passive: true })
 		element.addEventListener('pointerup', release, { passive: true })
 		element.setPointerCapture(e.pointerId)
+	}
+}
+
+abstract class DragCore {
+	applyResistance(delta: number, threshold: number = 0, resistance: number = 0) {
+		const T = Math.max(0, threshold)
+		const R = Math.max(0, resistance)
+		const a = Math.abs(delta)
+		const s = Math.sign(delta) || 1
+
+		return a <= T ? delta : s * (T + (a - T) / (1 + R))
 	}
 }

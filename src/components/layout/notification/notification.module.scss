@@ -4,7 +4,7 @@
 
 .notification {
 	position: absolute;
-	top: f.rem(24);
+	top: f.rem(24); //тут не надо, надо в list todo
 	left: 0;
 	width: f.rem(300);
 	padding: 0.8em 1.6em;
@@ -13,12 +13,11 @@
 	color: f.cl($cd-text);
 	text-align: center;
 	pointer-events: none;
-	background-color: f.cl($cd-glass-background, 0.45);
+	background-color: f.cl($cd-glass-background, $a: 0.45);
 	border-radius: f.rem(14);
-	box-shadow: 0 f.rem(6) f.rem(24) rgba(0, 0, 0, 0.2);
+	box-shadow: 0 f.rem(6) f.rem(24) rgb(0 0 0 / 0.2);
 	opacity: 0;
 	backdrop-filter: blur(12px) saturate(150%);
-	//translate: -50% 0;
 	transition:
 		top 0.35s ease,
 		opacity 0.35s ease;
@@ -49,11 +48,19 @@
 		);
 	}
 
+	&--neutral {
+		@include m.glassyBorder(
+			0deg f.rem(1),
+			$colors: (f.cl($cd-accent), transparent, transparent, f.cl($cd-accent)),
+			$animate: true
+		);
+	}
+
 	&--negative {
 		@include m.glassyBorder(
 			0deg,
 			f.rem(1),
-			$colors: (f.cl($cd-negative, 0.5), transparent, transparent, f.cl($cd-negative, 0.5)),
+			$colors: (f.cl($cd-negative, $a: 0.5), transparent, transparent, f.cl($cd-negative, $a: 0.5)),
 			$animate: true
 		);
 	}
@@ -68,7 +75,6 @@
 		opacity: 1;
 	}
 	100% {
-		top: 0;
 		opacity: 0;
 		transform: translateY(-100%);
 	}

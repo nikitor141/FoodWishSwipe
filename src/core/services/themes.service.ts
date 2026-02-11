@@ -34,12 +34,14 @@ export class ThemesService extends Singleton {
 		const next: AvailableThemes = this.#defaultThemes[this.#currentIndex]
 		const theme: ApplicableThemes = next === 'system' ? this.#getSystemTheme() : next
 
-		this.store.updateState('theme', next)
 		this.#applyTheme(theme)
+		this.store.updateState('theme', next)
 	}
 
 	#applyTheme(theme: ApplicableThemes): void {
-		setTimeout(() => delete document.documentElement.dataset.themeChanging)
+		requestAnimationFrame(() => {
+			requestAnimationFrame(() => delete document.documentElement.dataset.themeChanging)
+		})
 
 		document.documentElement.dataset.themeChanging = 'true'
 		this.dataset.theme = theme

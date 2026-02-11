@@ -1,0 +1,25 @@
+@use '@/styles/functions' as f;
+@use '@/styles/variables' as *;
+
+.checkbox {
+	display: flex;
+	gap: 1em;
+	align-items: center;
+
+	&__input {
+		flex-shrink: 0;
+		width: 1em;
+		height: 1em;
+		font-size: inherit;
+	}
+	&__text {
+		flex-grow: 1;
+		&:not(:checked ~ &):not(:indeterminate ~ &) {
+			color: oklch(from currentColor l c h / .5);
+			text-decoration: line-through;
+		}
+		:indeterminate ~ & {
+			color: oklch(from currentColor l c h / .5);
+		}
+	}
+}

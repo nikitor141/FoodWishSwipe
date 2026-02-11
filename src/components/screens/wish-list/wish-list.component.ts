@@ -1,11 +1,11 @@
 import { RenderService } from '@core/services/render.service'
 
-import { TITLE_FAVORITES } from '@/constants/titles.constants'
+import { TITLE_WISH_LIST } from '@/constants/titles.constants'
 import { BaseScreen } from '@/core/component/base-screen.component'
-import styles from './favorites.module.scss'
-import template from './favorites.template.html?raw'
+import styles from './wish-list.module.scss'
+import template from './wish-list.template.html?raw'
 
-export class Favorites extends BaseScreen {
+export class WishList extends BaseScreen {
 	element: HTMLElement
 	renderService: RenderService = RenderService.instance
 	path!: string
@@ -14,7 +14,7 @@ export class Favorites extends BaseScreen {
 		super()
 	}
 	init() {
-		super.setTitle({ title: TITLE_FAVORITES })
+		super.setTitle({ title: TITLE_WISH_LIST })
 	}
 
 	render(): HTMLElement {

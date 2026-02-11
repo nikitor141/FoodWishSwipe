@@ -29,7 +29,7 @@ export class NotificationService extends Singleton {
 
 	#showNotif(notif: Notification) {
 		this.#active.add(notif)
-		notif.mount(this.#getContainer())
+		notif.mount(this.#getContainer(), 'prepend')
 		this.#addListeners(notif)
 
 		this.#setNotifTimeout(notif)
@@ -43,7 +43,7 @@ export class NotificationService extends Singleton {
 		notif.destroy()
 	}
 
-	#produceDestroyed = (e: DragCustomEvent<Notification>) => {
+	#handleDestroyed = (e: DragCustomEvent<Notification>) => {
 		this.#active.delete(e.detail.instance)
 		this.#removeListeners(e.detail.instance)
 
@@ -54,12 +54,12 @@ export class NotificationService extends Singleton {
 		}
 	}
 
-	#produceDragstart = (e: DragCustomEvent<Notification>) => {
+	#handleDragstart = (e: DragCustomEvent<Notification>) => {
 		clearTimeout(e.detail.instance.timeout)
 		e.detail.instance.timeout = null
 	}
 
-	#produceDragend = (e: DragCustomEvent<Notification>) => {
+	#handleDragend = (e: DragCustomEvent<Notification>) => {
 		const notif = e.detail.instance
 
 		if (e.detail.thresholdPassed.y || (!e.detail.isInView.topLeft && !e.detail.isInView.topRight)) {
@@ -70,14 +70,14 @@ export class NotificationService extends Singleton {
 	}
 
 	#addListeners(notif: Notification) {
-		notif.element.addEventListener('notifDestroyed', this.#produceDestroyed)
-		notif.element.addEventListener('dragstart', this.#produceDragstart)
-		notif.element.addEventListener('dragend', this.#produceDragend)
+		notif.element.addEventListener('notifDestroyed', this.#handleDestroyed)
+		notif.element.addEventListener('dragstart', this.#handleDragstart)
+		notif.element.addEventListener('dragend', this.#handleDragend)
 	}
 
 	#removeListeners(notif: Notification) {
-		notif.element.removeEventListener('notifDestroyed', this.#produceDestroyed)
-		notif.element.removeEventListener('dragstart', this.#produceDragstart)
-		notif.element.removeEventListener('dragend', this.#produceDragend)
+		notif.element.removeEventListener('notifDestroyed', this.#handleDestroyed)
+		notif.element.removeEventListener('dragstart', this.#handleDragstart)
+		notif.element.removeEventListener('dragend', this.#handleDragend)
 	}
 }

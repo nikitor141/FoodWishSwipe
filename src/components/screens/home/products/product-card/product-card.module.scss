@@ -28,28 +28,31 @@
 	--card-gradient-positive-end: 60%;
 	--card-gradient-negative-end: 80%;
 
+	$scale: 1;
 	$border-width: f.rem(1);
-
 	position: relative;
 	display: flex;
 	flex-direction: column;
 	grid-area: stack;
-	width: f.rem(320);
-	padding: f.rem(35) f.rem(29);
+	min-width: 0;
+	max-width: $scale * 100%;
+	padding: f.rem($scale * 25);
+	container-type: inline-size;
 	line-height: 1.2;
+	user-select: none;
 	background:
 		radial-gradient(
 			ellipse at 25% 38%,
-			f.cl($cd-positive, var(--card-gradient-positive-opacity)) 10%,
+			f.cl($cd-positive, $a: var(--card-gradient-positive-opacity)) 10%,
 			transparent var(--card-gradient-positive-end)
 		),
 		radial-gradient(
 			ellipse at 75% 55%,
-			f.cl($cd-negative, var(--card-gradient-negative-opacity)) 30%,
+			f.cl($cd-negative, $a: var(--card-gradient-negative-opacity)) 30%,
 			transparent var(--card-gradient-negative-end)
 		),
-		f.cl($cd-glass-background, 0.25);
-	border-radius: f.rem(40);
+		f.cl($cd-glass-background, $a: 0.25);
+	border-radius: 13.7% / 9.9%;
 	backdrop-filter: $blur;
 	transition:
 		--card-gradient-positive-opacity 0.4s,
@@ -60,14 +63,24 @@
 		left 0.4s,
 		rotate 0.4s;
 
+	@include m.glassyBorder;
+
 	&[data-dragging='true'] {
 		transition: none;
 	}
 
-	@include m.glassyBorder;
+	&--vanishing-left {
+		animation: vanishLeft 0.4s forwards;
+	}
+
+	&--vanishing-right {
+		animation: vanishRight 0.4s forwards;
+	}
+
 	* {
 		transition: opacity 0.2s;
 	}
+
 	&:not(:last-child) {
 		pointer-events: none;
 
@@ -75,30 +88,14 @@
 			opacity: 0;
 		}
 	}
-	&:nth-child(1) {
-		translate: 0 f.rem(-20);
-	}
-	&:nth-child(2) {
-		translate: 0 f.rem(-10);
-		* {
-			opacity: 0.5;
-		}
-	}
-	&:nth-child(3) {
-		translate: 0 f.rem(0);
-
-		* {
-			opacity: 1;
-		}
-	}
 
 	&__tag {
 		display: flex;
 		align-items: center;
-		height: f.rem(25);
-		margin-bottom: f.rem(14.5);
-		font-size: f.rem(12);
-		color: f.cl($cd-small-text, 0.6);
+		max-height: f.rem($scale * 25);
+		margin-bottom: f.rem($scale * 20);
+		font-size: f.rem($scale * 12);
+		color: f.cl($cd-small-text, $a: 0.6);
 		text-wrap: nowrap;
 
 		&-category,
@@ -116,29 +113,44 @@
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		height: f.rem(200);
-		padding: f.rem(10);
-		margin-bottom: f.rem(14.5);
+		height: f.rem($scale * 200);
+		padding: f.rem($scale * 10);
+		margin-bottom: f.rem($scale * 15);
 		background-color: white;
-		border-radius: f.rem(20);
+		border-radius: f.rem($scale * 20);
 
 		img {
 			width: auto;
 		}
 	}
 	&__price {
-		font-size: f.rem(27);
+		font-size: f.rem($scale * 26);
 		font-weight: 600;
 		color: f.cl($cd-accent);
 		sup {
-			font-size: f.rem(16);
+			font-size: 0.6em;
 		}
 	}
 	&__name {
-		height: f.rem(24 * 3 * 1.2);
-		margin-bottom: f.rem(14.5);
+		height: 1em * 3 * 1.2;
+		margin-bottom: f.rem($scale * 15);
 		overflow: hidden;
-		font-size: f.rem(24);
+		font-size: f.rem($scale * 24);
 		font-weight: bold;
+	}
+}
+
+@keyframes vanishLeft {
+	to {
+		opacity: 0;
+		transform: translateX(-100%);
+		rotate: -15deg;
+	}
+}
+@keyframes vanishRight {
+	to {
+		opacity: 0;
+		transform: translateX(100%);
+		rotate: 15deg;
 	}
 }

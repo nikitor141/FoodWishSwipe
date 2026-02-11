@@ -1,2 +1,2 @@
 export const TITLE_HOME = 'Home'
-export const TITLE_FAVORITES = 'Favorites'
+export const TITLE_WISH_LIST = 'Wish List'
