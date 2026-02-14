@@ -51,7 +51,7 @@ export class Checkbox implements Component {
 
 		document.addEventListener('click', e => {
 			const target = e.target as HTMLSpanElement | null
-			if (!target?.closest('span')) return
+			if (target?.closest('input')) return
 
 			const checkboxEl = target?.closest('[data-ui="checkbox"]') as HTMLLabelElement
 			const checkbox = Checkbox.from(checkboxEl)

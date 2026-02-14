@@ -1,16 +1,37 @@
 @use '@/styles/functions' as f;
 @use '@/styles/variables' as *;
+@use '@/styles/mixins' as m;
 
 .wish-products {
 	&__list {
 		display: grid;
 		grid-template-columns: repeat(2, 1fr);
 		gap: f.rem(10);
-		padding: 0 f.rem(15);
+		padding: 0 f.rem(15) f.rem(80);
 		overflow-y: auto;
 
 		[data-component='product-card'] {
 			--scale: 0.5;
 		}
+	}
+	&__clear {
+		@include m.glassyBorder();
+		position: fixed;
+		bottom: 0;
+		width: 100%;
+		padding: f.rem(15) 0;
+		background-color: f.cl($cd-glass-background, $a: 0.45);
+		border-radius: f.rem(14) f.rem(14) 0 0;
+		backdrop-filter: $liquid-blur-d;
+
+		[data-theme='light'] & {
+			backdrop-filter: $liquid-blur-l;
+		}
+	}
+
+	&__clear-button {
+		@include m.btn();
+		margin: 0 auto;
+		background-color: f.cl($cd-negative, $a: 0.45);
 	}
 }

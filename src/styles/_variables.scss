@@ -3,6 +3,8 @@
 $font: 'Inter', system-ui, sans-serif;
 $fs: f.rem(14);
 $blur: blur(f.rem(12));
+$liquid-blur-d: blur(f.rem(12)) brightness(2) saturate(1.5);
+$liquid-blur-l: blur(1.2rem) contrast(6) saturate(0.4) brightness(0.8);
 
 // colors
 $cl-red: #e80707;

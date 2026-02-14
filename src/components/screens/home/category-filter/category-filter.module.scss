@@ -15,13 +15,17 @@
 	user-select: none;
 	background-color: f.cl($cd-glass-background, $a: 0.45);
 	border-radius: f.rem(14) f.rem(14) 0 0;
-	backdrop-filter: $blur;
+	backdrop-filter: $liquid-blur-d;
 	transition:
 		top 0.4s,
 		background-color 0.4s;
 
+	[data-theme='light'] & {
+		backdrop-filter: $liquid-blur-l;
+	}
+
 	[data-theme='dark'] &[aria-expanded='true'] {
-		background-color: f.cl($cd-glass-background, $a: 0.45, $l: 'calc(l - 0.1)');
+		background-color: f.cl($cd-glass-background, $a: 0.45, $l: 0);
 	}
 
 	&[data-dragging='true'] {

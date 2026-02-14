@@ -44,14 +44,15 @@
 	$name: string.unquote($name);
 	$var: var(--color-#{$name});
 
-	@if $l == 'l' and $c == 'c' and $h == 'h' {
-		@if $a != 1 {
-			@return rgb(from $var r g b / $a);
-		}
-		@return $var;
+	@if $l != 'l' or $c != 'c' or $h != 'h' {
+		@return oklch(from $var #{$l} #{$c} #{$h} / #{$a});
 	}
 
-	@return oklch(from $var #{$l} #{$c} #{$h} / #{$a});
+	@if $a != 1 {
+		@return rgb(from $var r g b / $a);
+	}
+
+	@return $var;
 }
 
 @function rem($pixels) {

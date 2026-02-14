@@ -20,7 +20,10 @@
 	margin: f.rem(5) auto;
 	background-color: f.cl($cd-glass-background, $a: 0.45);
 	border-radius: f.rem(50);
-	backdrop-filter: $blur;
+	backdrop-filter: $liquid-blur-d;
+	[data-theme='light'] & {
+		backdrop-filter: $liquid-blur-l;
+	}
 
 	&::after {
 		width: f.rem(2);
@@ -55,8 +58,6 @@
 			left: 0;
 			z-index: -1;
 			width: auto;
-			height: f.rem($btn-height);
-			border-radius: 100vw;
 
 			&--going-right {
 				transition:
