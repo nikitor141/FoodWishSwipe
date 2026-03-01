@@ -24,6 +24,12 @@ export class ProductCard implements Component {
 		snap: { animation: true, forwards: true }
 	}
 
+	static #instancesByElement: WeakMap<HTMLElement, ProductCard> = new WeakMap()
+
+	static from(element: HTMLElement): ProductCard {
+		return this.#instancesByElement.get(element)
+	}
+
 	constructor(product: Product, config: { inactiveLink: boolean; draggable: boolean }) {
 		this.product = product
 		this.inactiveLink = config.inactiveLink
@@ -79,6 +85,8 @@ export class ProductCard implements Component {
 
 	mount(parent: HTMLElement, method: 'append' | 'prepend'): void {
 		if (!this.element) this.element = this.render()
+
+		ProductCard.#instancesByElement.set(this.element, this)
 
 		parent[method](this.element)
 

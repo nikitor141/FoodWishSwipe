@@ -1,6 +1,6 @@
 import { ProductCard } from '@components/screens/home/products/product-card/product-card.component.ts'
 import { WishList } from '@components/screens/wish-list/wish-list.component.ts'
-import { Checkbox } from '@components/ui/checkbox/checkbox.component.ts'
+import { WishProductsListItemComponent } from '@components/screens/wish-list/wish-products/wish-products-list-item/wish-products-list-item.component.ts'
 import { Component } from '@core/component/component'
 import { ObserverService } from '@core/services/observer.service.ts'
 import { ProductsManagerEvent, ProductsManagerService } from '@core/services/products-manager.service.ts'
@@ -19,6 +19,10 @@ export class WishProducts implements Component {
 
 	#productCardsByProduct: Map<Product, ProductCard> = new Map()
 
+	#ProductCardsByLIElements: WeakMap<HTMLLIElement, ProductCard> = new WeakMap()
+	#LiByProductCard: WeakMap<ProductCard, WishProductsListItemComponent> = new WeakMap()
+	#selectedListItems: Set<HTMLLIElement> = new Set()
+
 	constructor() {
 		this.observerService.subscribe(this, [this.productsManagerService], WishList)
 		// при загрузке приложения на этом экране ждем событие от productsManager для заполнения
@@ -30,22 +34,26 @@ export class WishProducts implements Component {
 				this.#fill()
 				break
 			case 'wish-list-removed':
-				this.#productCardsByProduct.get(data.product).destroy()
+				const productCard = this.#productCardsByProduct.get(data.product)
 				this.#productCardsByProduct.delete(data.product)
+				productCard.destroy()
+				const li = this.#LiByProductCard.get(productCard)
+				this.#selectedListItems.delete(li.element as HTMLLIElement)
+				li.destroy()
 				break
 			case 'wish-list-cleared':
 				for (const productCard of this.#productCardsByProduct.values()) {
 					productCard.destroy()
+					this.#LiByProductCard.get(productCard).destroy()
 				}
 				this.#productCardsByProduct.clear()
+				this.#selectedListItems.clear()
 				break
 		}
 	}
 
 	#addListeners() {
-		this.clearBtn.addEventListener('click', () => {
-			this.productsManagerService.wishList.clear()
-		})
+		this.clearBtn.addEventListener('click', this.#handleClearBtnClick)
 
 		this.element.oncontextmenu = e => {
 			e.preventDefault()
@@ -54,31 +62,77 @@ export class WishProducts implements Component {
 			if (e.defaultPrevented) return
 		}
 
-		let timerId
-		this.element.onpointerdown = e => {
-			timerId = setTimeout(() => {
-				for (const productCard of this.#productCardsByProduct.values()) {
-					// const checkbox = new Checkbox(false, {})
-				}
-			}, 1000)
+		let timeoutId: ReturnType<typeof setTimeout>
+		this.element.onpointerdown = () => {
+			timeoutId = setTimeout(() => this.#handleAfterHold(), 500)
 		}
 		this.element.onpointerup =
 			this.element.onpointercancel =
 			this.element.onpointerleave =
-				() => {
-					clearTimeout(timerId)
-				}
+				() => clearTimeout(timeoutId)
+	}
+
+	#handleClearBtnClick = () => {
+		switch (this.productsListEl.dataset.wishProductsListMode) {
+			case 'view':
+				this.productsManagerService.wishList.clear()
+				break
+			case 'edit':
+				this.#selectedListItems.forEach(li => {
+					const productCard = this.#ProductCardsByLIElements.get(li)
+					this.productsManagerService.wishList.remove(productCard.product)
+				})
+				break
+		}
+		this.productsListEl.dataset.wishProductsListMode = 'view'
+		this.element.removeEventListener('click', this.#handleLiClick)
+		this.#updateClearBtnIcon()
+	}
+
+	#handleAfterHold() {
+		this.productsListEl.dataset.wishProductsListMode = 'edit'
+		this.#updateClearBtnIcon()
+
+		this.element.addEventListener('click', this.#handleLiClick)
+	}
+
+	#handleLiClick = (e: PointerEvent) => {
+		const target = e.target as HTMLElement
+		const liEl = target?.closest('[data-component="wish-products-list-item"]') as HTMLLIElement
+		if (!liEl) return
+
+		this.#selectedListItems.has(liEl) ? this.#selectedListItems.delete(liEl) : this.#selectedListItems.add(liEl)
+		this.#updateClearBtnIcon()
+		console.log(this.#selectedListItems)
+	}
+	#updateClearBtnIcon() {
+		const mode = this.productsListEl.dataset.wishProductsListMode
+		const useEl = this.element.querySelector('use')
+		switch (mode) {
+			case 'view':
+				useEl.setAttribute('href', '#remove')
+				break
+			case 'edit':
+				this.#selectedListItems.size === 0
+					? useEl.setAttribute('href', '#cancel')
+					: useEl.setAttribute('href', '#remove')
+				break
+		}
 	}
 
 	#fill() {
 		for (const product of this.productsManagerService.wishList.getRuntime()) {
 			const productCard = new ProductCard(product, { inactiveLink: false, draggable: false })
-			productCard.mount(this.productsListEl, 'prepend')
+			const li = new WishProductsListItemComponent()
+			li.mount(this.productsListEl, 'prepend')
+			productCard.mount(li.element, 'append')
 			this.#productCardsByProduct.set(product, productCard)
+			this.#ProductCardsByLIElements.set(li.element as HTMLLIElement, productCard)
+			this.#LiByProductCard.set(productCard, li)
 		}
 	}
 
-	render(): HTMLElement {
+	render() {
 		this.element = this.renderService.htmlToElement(template, [], styles) as HTMLElement
 		this.productsListEl = this.element.querySelector(`.${styles['wish-products__list']}`)
 		this.clearBtn = this.element.querySelector(`.${styles['wish-products__clear-button']}`)

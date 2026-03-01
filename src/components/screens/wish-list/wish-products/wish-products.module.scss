@@ -4,6 +4,10 @@
 
 .wish-products {
 	&__list {
+		&[data-wish-products-list-mode='edit'] {
+			outline: red solid 1px;
+			//todo анимация jiggle
+		}
 		display: grid;
 		grid-template-columns: repeat(2, 1fr);
 		gap: f.rem(10);

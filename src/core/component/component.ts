@@ -7,7 +7,8 @@ export interface Component {
 	element: Element
 	renderService: RenderService
 	screen?: ScreenSingleton
-	render(): Element | HTMLElement | SVGElement
+	render(): Element | HTMLElement | SVGElement //todo T GenericType исходя из каждого template корневого элемента
+	// Убрать as HTMLElement и похожие
 	mount?(parent: HTMLElement, method: 'append' | 'prepend'): void
 	destroy?(...args: any): void
 }

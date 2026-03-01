@@ -36,7 +36,7 @@ export class ThemeSwitcher implements Component {
 	}
 
 	#onUpdate() {
-		this.element.querySelector('#use').setAttribute('href', '#' + this.store.state.theme)
+		this.element.querySelector('use').setAttribute('href', '#' + this.store.state.theme)
 	}
 
 	render(): HTMLElement {
