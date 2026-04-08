@@ -26,6 +26,6 @@ export type DragMoveEvent<T, TAxis extends Axis> = CustomEvent<{
 export type DragEndEvent<T> = CustomEvent<{
 	instance: T
 	isInView: Record<'topLeft' | 'topRight' | 'bottomLeft' | 'bottomRight', boolean>
-	direction: Record<Axis, string>
+	direction: Record<Axis, Side>
 	thresholdPassed?: Record<Axis, boolean>
 }>

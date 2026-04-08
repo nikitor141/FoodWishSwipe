@@ -28,7 +28,7 @@ export class ProductCard implements Component {
 
 	static #instancesByElement = new WeakMap<HTMLElement, ProductCard>()
 
-	static from(element: HTMLElement): ProductCard {
+	static from(element: HTMLElement) {
 		return this.#instancesByElement.get(element)
 	}
 
@@ -56,9 +56,9 @@ export class ProductCard implements Component {
 		}
 
 		this.element.style.rotate = dx * 0.05 + 'deg'
-		this.element.style.opacity = lerp(1, 0.8, t)
+		this.element.style.opacity = `${lerp(1, 0.8, t)}`
 
-		function lerp(start, end, t) {
+		function lerp(start: number, end: number, t: number) {
 			return start + (end - start) * t
 		}
 	}
@@ -113,7 +113,7 @@ export class ProductCard implements Component {
 			this.element = null
 		}
 
-		if (direction.x) {
+		if (direction?.x) {
 			this.element.classList.add(styles[`product-card--vanishing-${direction.x}`])
 			this.element.onanimationend = clear
 		} else {
@@ -124,17 +124,17 @@ export class ProductCard implements Component {
 	render(): HTMLElement {
 		this.element = this.renderService.htmlToElement(template, [], styles) as HTMLElement
 
-		const subcategoryEl = this.element.querySelector<HTMLSpanElement>(`.${styles['product-card__tag-subcategory']}`)
-		const categoryEl = this.element.querySelector<HTMLSpanElement>(`.${styles['product-card__tag-category']}`)
-		const nameLinkEl = this.element.querySelector<HTMLAnchorElement>(`.${styles['product-card__name']} a`)
-		const imgLinkEl = this.element.querySelector<HTMLAnchorElement>(`.${styles['product-card__image']}`)
-		const priceMainEl = this.element.querySelector<HTMLSpanElement>(`.${styles['product-card__price']} span`)
-		const pricePennyEl = this.element.querySelector(`.${styles['product-card__price']} sup`)
-		const imgEl: HTMLImageElement = imgLinkEl.querySelector('img')
+		const subcategoryEl = this.element.querySelector<HTMLSpanElement>(`.${styles['product-card__tag-subcategory']}`)!
+		const categoryEl = this.element.querySelector<HTMLSpanElement>(`.${styles['product-card__tag-category']}`)!
+		const nameLinkEl = this.element.querySelector<HTMLAnchorElement>(`.${styles['product-card__name']} a`)!
+		const imgLinkEl = this.element.querySelector<HTMLAnchorElement>(`.${styles['product-card__image']}`)!
+		const priceMainEl = this.element.querySelector<HTMLSpanElement>(`.${styles['product-card__price']} span`)!
+		const pricePennyEl = this.element.querySelector<HTMLElement>(`.${styles['product-card__price']} sup`)!
+		const imgEl: HTMLImageElement = imgLinkEl.querySelector<HTMLImageElement>('img')!
 
 		const price = this.product.price.toString().split('.')
-		const priceMain = price[0]
-		const pricePenny = price[1]
+		const priceMain = price[0]!
+		const pricePenny = price[1]!
 
 		subcategoryEl.textContent = this.product.subcategoryName
 		categoryEl.textContent = this.product.categoryName

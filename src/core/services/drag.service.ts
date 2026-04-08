@@ -195,7 +195,6 @@ class DragSession<T extends Component, D extends Direction, TAxis extends Axis =
 
 		const release = (e: PointerEvent) => {
 			this.eCurrent = this.eUp = e
-			this.snap()
 
 			this.element.ondragstart = null
 			this.element.removeAttribute('data-dragging')
@@ -205,6 +204,7 @@ class DragSession<T extends Component, D extends Direction, TAxis extends Axis =
 			this.element.removeEventListener('pointerleave', release)
 			this.element.releasePointerCapture(this.eDown.pointerId)
 
+			this.snap()
 			this.element.dispatchEvent(
 				new CustomEvent('dragend', {
 					bubbles: true,
@@ -265,16 +265,18 @@ class DragSession<T extends Component, D extends Direction, TAxis extends Axis =
 		}
 
 		if (this.config.bounds) {
-			const bounded = this.getBounded(countedPosition)
-			const sides = this.config.bounds.sides
+			const { rect, sides } = this.config.bounds
 
 			for (const meta of this.infoMetaList) {
-				if (bounded.has(meta.cssProperty) && sides.has(meta.cssProperty)) {
-					countedPosition[meta.cssProperty as keyof typeof countedPosition] = 0
+				const p = meta.cssProperty as keyof typeof countedPosition
+				if (sides.has(meta.cssProperty)) {
+					countedPosition[p] = Math.max(countedPosition[p], rect[meta.cssProperty])
 				}
-				if (bounded.has(meta.oppositeCssProperty) && sides.has(meta.oppositeCssProperty)) {
-					countedPosition[meta.cssProperty as keyof typeof countedPosition] =
-						this.config.bounds.rect[meta.oppositeCssProperty] - this.element[meta.offsetSize]
+				if (sides.has(meta.oppositeCssProperty)) {
+					countedPosition[p] = Math.min(
+						countedPosition[p],
+						rect[meta.oppositeCssProperty] - this.element[meta.offsetSize]
+					)
 				}
 			}
 		}
@@ -304,13 +306,16 @@ class DragSession<T extends Component, D extends Direction, TAxis extends Axis =
 
 		const complete = () => (forwards ? this.makeDraggable() : this.styles('clear'))
 
-		if (!animation || Object.values(this.getDelta()).every(v => v === 0)) {
+		if (!animation) {
 			complete()
 			return
 		}
 
 		// Если реализовывать через view-transition мы упираемся в ограничение возможности контролировать анимацию из-за невозможности задать ::view-transition-group(name) если name генерируется динамически, а статическое имя не подходит, так как может совпасть для разных сессий. Подход рабочий, но ограниченный.
-		const promises = this.infoMetaList.map(meta => {
+		const elementDelta = this.getElementDelta()
+		const promises = this.infoAxisList.map(axis => {
+			const meta = this.info[axis]
+
 			this.element.style[meta.cssProperty] = this.initialGeometry[meta.cssProperty] + 'px'
 
 			return new Promise<void>(resolve => {
@@ -319,7 +324,7 @@ class DragSession<T extends Component, D extends Direction, TAxis extends Axis =
 					this.element.removeEventListener('transitionend', handler)
 					resolve()
 				}
-				this.element.addEventListener('transitionend', handler)
+				elementDelta[axis] === 0 ? resolve() : this.element.addEventListener('transitionend', handler)
 			})
 		})
 
@@ -365,26 +370,6 @@ class DragSession<T extends Component, D extends Direction, TAxis extends Axis =
 			result[axis] = Math.abs(delta[axis]) > this.config.threshold
 		}
 
-		return result
-	}
-
-	// Внутренний метод. Удобнее итерируемый, чем объект.
-	getBounded(countedCssProperty: Record<SessionInfo<TAxis>[TAxis]['cssProperty'], number>) {
-		const result = new Set<
-			SessionInfo<TAxis>[TAxis]['cssProperty'] | SessionInfo<TAxis>[TAxis]['oppositeCssProperty']
-		>()
-		if (!this.config.bounds) return result
-
-		const rect = this.config.bounds.rect
-
-		for (const meta of this.infoMetaList) {
-			const p: SessionInfo<TAxis>[TAxis]['cssProperty'] = meta.cssProperty
-			const op: SessionInfo<TAxis>[TAxis]['oppositeCssProperty'] = meta.oppositeCssProperty
-			const max = rect[op] - this.element[meta.offsetSize]
-
-			if (countedCssProperty[p] <= rect[p]) result.add(p)
-			if (countedCssProperty[p] >= max) result.add(op)
-		}
 		return result
 	}
 

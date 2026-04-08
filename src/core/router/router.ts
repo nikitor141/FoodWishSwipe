@@ -68,9 +68,6 @@ export class Router extends Singleton {
 		this.#currentRoute.instance.path ??= path
 		this.#store.updateState('screen', { previous: previousRoute, current: this.#currentRoute })
 		// код ниже может использовать state, чтобы получить актуальную информацию, поэтому такой порядок
-		// document.startViewTransition(() =>
-		// 	this.#render()
-		// )
 		this.#render()
 	}
 

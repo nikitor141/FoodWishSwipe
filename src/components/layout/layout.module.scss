@@ -32,10 +32,4 @@
 
 .content {
 	flex-grow: 1;
-	//view-transition-name: content; - создает stacking context и поэтому ломает z-index у category-filter
 }
-//todo анимация slide в обе стороны при переключении экрана. Больше никакой анимации не нужно.
-//::view-transition-old(content),
-//::view-transition-new(content) {
-//	animation: slide 0.4s ease-in-out;
-//}
