@@ -48,9 +48,9 @@ export class ProductsManagerService extends Singleton {
 		categories: new Set(this.store.state.excluded?.categories ?? []),
 		subcategories: new Set(this.store.state.excluded?.subcategories ?? []),
 		productsBySubcategory: new Map(
-			Object.entries(this.store.state.excluded?.productsBySubcategory ?? {}).map(([subcategoryId, productsIds]) => [
-				+subcategoryId,
-				new Set(productsIds)
+			Object.entries(this.store.state.excluded?.productsBySubcategory ?? {}).map(([subcategory_id, products_ids]) => [
+				+subcategory_id,
+				new Set(products_ids)
 			])
 		),
 		products: new Set(this.store.state.excluded?.products ?? [])
@@ -89,18 +89,18 @@ export class ProductsManagerService extends Singleton {
 
 		getSerialized: () => getAsObject(this.#excluded),
 
-		excludeProduct: ({ categoryId, subcategoryId, id }: Product) => {
-			if (!this.#excluded.productsBySubcategory.has(subcategoryId))
-				this.#excluded.productsBySubcategory.set(subcategoryId, new Set())
+		excludeProduct: ({ category_id, subcategory_id, id }: Product) => {
+			if (!this.#excluded.productsBySubcategory.has(subcategory_id))
+				this.#excluded.productsBySubcategory.set(subcategory_id, new Set())
 
-			let subcategoryProductsSet = this.#excluded.productsBySubcategory.get(subcategoryId)
+			let subcategoryProductsSet = this.#excluded.productsBySubcategory.get(subcategory_id)
 
 			subcategoryProductsSet.add(id)
 			this.#excluded.products.add(id)
 
 			// Исключаем подкатегорию по условию
-			if (this.#shouldExcludeSubcategory(subcategoryId)) {
-				this.excluded.excludeSubcategory(subcategoryId, categoryId)
+			if (this.#shouldExcludeSubcategory(subcategory_id)) {
+				this.excluded.excludeSubcategory(subcategory_id, category_id)
 			}
 
 			this.#saveExcludedState()
@@ -112,7 +112,7 @@ export class ProductsManagerService extends Singleton {
 
 			this.#purgeProductsBySubcategory(subCatId)
 
-			const activeOrQueueWasFiltered = this.#purgeActiveAndQueueBy('subcategoryId', subCatId)
+			const activeOrQueueWasFiltered = this.#purgeActiveAndQueueBy('subcategory_id', subCatId)
 			if (activeOrQueueWasFiltered) this.#ensureActiveFilled()
 
 			// Исключаем категорию по условию
@@ -124,7 +124,7 @@ export class ProductsManagerService extends Singleton {
 		},
 
 		excludeCategory: (catId: number) => {
-			this.#allCategories.categories[catId].subcategoryIds.forEach(subCatId => {
+			this.#allCategories.categories[catId].subcategory_ids.forEach(subCatId => {
 				this.#purgeProductsBySubcategory(subCatId)
 				this.excluded.includeSubcategory(subCatId, catId)
 			})
@@ -132,7 +132,7 @@ export class ProductsManagerService extends Singleton {
 			this.#excluded.categories.add(catId)
 			this.#notify('category-excluded', catId)
 
-			const activeOrQueueWasFiltered = this.#purgeActiveAndQueueBy('categoryId', catId)
+			const activeOrQueueWasFiltered = this.#purgeActiveAndQueueBy('category_id', catId)
 			if (activeOrQueueWasFiltered) this.#ensureActiveFilled()
 
 			this.#saveExcludedState()
@@ -141,7 +141,7 @@ export class ProductsManagerService extends Singleton {
 		includeSubcategory: (subCatId: number, catId: number) => {
 			const categoryWasIncluded = this.excluded.includeCategory(catId)
 			if (categoryWasIncluded) {
-				this.#allCategories.categories[catId].subcategoryIds.forEach(siblingSubCatId => {
+				this.#allCategories.categories[catId].subcategory_ids.forEach(siblingSubCatId => {
 					if (siblingSubCatId === subCatId) return
 					this.excluded.excludeSubcategory(siblingSubCatId, catId)
 				})
@@ -241,11 +241,11 @@ export class ProductsManagerService extends Singleton {
 	}
 
 	#shouldExcludeCategory(catId: number) {
-		const excludedSubCatsCount = this.#allCategories.categories[catId].subcategoryIds.filter(subCatId =>
+		const excludedSubCatsCount = this.#allCategories.categories[catId].subcategory_ids.filter(subCatId =>
 			this.#excluded.subcategories.has(subCatId)
 		).length // todo убрать filter добавить структуру Map<cat, subCats>
 		// return excludedSubCatsCount > 0 && excludedSubCatsCount % 2 === 0
-		return excludedSubCatsCount === this.#allCategories.categories[catId].subcategoryIds.length
+		return excludedSubCatsCount === this.#allCategories.categories[catId].subcategory_ids.length
 		// && confirm('Исключить всю категорию?')
 	}
 
@@ -260,7 +260,7 @@ export class ProductsManagerService extends Singleton {
 		this.#excluded.productsBySubcategory.delete(subCatId)
 	}
 
-	#purgeActiveAndQueueBy(prop: 'subcategoryId' | 'categoryId', ref: number): boolean {
+	#purgeActiveAndQueueBy(prop: 'subcategory_id' | 'category_id', ref: number): boolean {
 		// Подстраховка от мутаций во время итераций
 		for (const p of Array.from(this.#queue)) {
 			if (p[prop] === ref) {

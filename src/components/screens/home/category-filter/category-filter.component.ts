@@ -23,9 +23,9 @@ export class CategoryFilter implements Component {
 	productsManagerService: ProductsManagerService = ProductsManagerService.instance
 	store: Store = Store.instance
 
-	#allCategories: AllCategories
+	#allCategories!: AllCategories
+	#categoriesContainer!: HTMLUListElement
 	#expanded: boolean = false
-	#categoriesContainer: HTMLUListElement
 
 	#filterItemsById = new Map<number, FilterItem>()
 
@@ -54,32 +54,6 @@ export class CategoryFilter implements Component {
 				filterItem.syncUi(type)
 				break
 			}
-			// case 'category-excluded': {
-			// 	const filterItem = this.#filterItemsById.get(data)
-			// 	filterItem.checkbox.setStatus(false)
-			// 	filterItem.setChildrenStatuses(false)
-			// 	break
-			// }
-			// case 'category-added': {
-			// 	const filterItem = this.#filterItemsById.get(data)
-			// 	filterItem.checkbox.setStatus(true)
-			// 	filterItem.setChildrenStatuses(true)
-			// 	break
-			// }
-			// case 'subcategory-excluded': {
-			// 	const filterItem = this.#filterItemsById.get(data)
-			// 	filterItem.checkbox.setStatus(false)
-			// 	filterItem.updateStatusByChildren()
-			// 	filterItem.updateIndeterminateState()
-			// 	break
-			// }
-			// case 'subcategory-added': {
-			// 	const filterItem = this.#filterItemsById.get(data)
-			// 	filterItem.checkbox.setStatus(true)
-			// 	filterItem.updateStatusByChildren()
-			// 	filterItem.updateIndeterminateState()
-			// 	break
-			// }
 		}
 	}
 
@@ -141,17 +115,18 @@ export class CategoryFilter implements Component {
 	}
 
 	async #fillCategories() {
-		this.#categoriesContainer = this.element.querySelector<HTMLUListElement>('#category-filter__list')
+		this.#categoriesContainer = this.element.querySelector<HTMLUListElement>('#category-filter__list')!
 		this.#allCategories = await this.productsManagerService.getAllCategories()
 
 		for (const category of Object.values(this.#allCategories.categories)) {
-			const subcategories = category.subcategoryIds.map(
-				subcategoryId => this.#allCategories.subcategories[subcategoryId]
-			)
+			// Прохожу по каждой категории
+			const subcategories = category.subcategory_ids.map(
+				subcategory_id => this.#allCategories.subcategories[subcategory_id]
+			) // Из id записанных в категории получаю объекты подкатегории из другого объекта
 
 			const parentFilterItem = new FilterItem(category, subcategories)
 			parentFilterItem.mount(this.#categoriesContainer, 'append')
-			this.#filterItemsById.set(category.id, parentFilterItem)
+			this.#filterItemsById.set(parentFilterItem.category.id, parentFilterItem)
 
 			for (const childFilterItem of parentFilterItem.children) {
 				this.#filterItemsById.set(childFilterItem.category.id, childFilterItem)

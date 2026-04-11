@@ -136,9 +136,10 @@ export class ProductCard implements Component {
 		const priceMain = price[0]!
 		const pricePenny = price[1]!
 
-		subcategoryEl.textContent = this.product.subcategoryName
-		categoryEl.textContent = this.product.categoryName
+		subcategoryEl.textContent = this.product.subcategory_name
+		categoryEl.textContent = this.product.category_name
 		nameLinkEl.textContent = this.product.name
+		nameLinkEl.title = this.product.name
 
 		if (!this.inactiveLink) {
 			nameLinkEl.href = this.product.url
@@ -148,6 +149,7 @@ export class ProductCard implements Component {
 		priceMainEl.textContent = priceMain
 		pricePennyEl.textContent = pricePenny
 		imgEl.src = this.product.image
+		imgEl.alt = this.product.name
 
 		return this.element
 	}

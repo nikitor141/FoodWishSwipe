@@ -9,6 +9,9 @@
 		"preview": "vp preview",
 		"prepare": "vp config"
 	},
+	"dependencies": {
+		"@supabase/supabase-js": "^2.103.0"
+	},
 	"devDependencies": {
 		"@types/node": "^25.6.0",
 		"autoprefixer": "^10.4.27",
