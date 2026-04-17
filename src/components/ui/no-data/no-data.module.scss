@@ -29,6 +29,17 @@
 		}
 		img {
 			filter: drop-shadow(0 f.rem(10) f.rem(10) f.cl($cd-accent, $a: 1));
+
+			@supports (font: -apple-system-body) {
+				//safari only фиксит баг с тенью
+				animation: shadow 1s linear forwards;
+			}
 		}
+	}
+}
+
+@keyframes shadow {
+	100% {
+		filter: drop-shadow(0 f.rem(10) f.rem(10) f.cl($cd-accent, $a: 1));
 	}
 }
