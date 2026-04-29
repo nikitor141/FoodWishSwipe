@@ -8,6 +8,7 @@
 	flex-direction: column;
 	gap: f.rem(15);
 	align-items: center;
+	animation: fadeIn 1s forwards;
 
 	&__text {
 		font-weight: bold;

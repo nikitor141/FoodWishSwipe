@@ -104,7 +104,7 @@ export class WishProducts implements StaticComponent {
 	}
 
 	#addListeners() {
-		this.clearBtn.addEventListener('click', this.#handleClearBtnClick)
+		this.clearBtn.addEventListener('pointerdown', this.#handleClearBtnClick)
 
 		this.#setHoldEvent()
 
