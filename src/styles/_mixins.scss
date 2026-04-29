@@ -63,9 +63,6 @@ $devices: (
 	}
 }
 @keyframes borderAnimation {
-	// 0% {
-	// 	--angle: 0deg;
-	// }
 	100% {
 		--angle: 360deg;
 	}
@@ -76,10 +73,16 @@ $devices: (
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	inline-size: f.rem($btn-width);
-	block-size: f.rem($btn-height);
+	inline-size: f.rem($btn-width * 2);
+	block-size: f.rem($btn-height * 2);
 	border-radius: 100vw;
 	background-color: f.cl($cd-glass-background, $l: "calc(l * 0.8)", $a: 0.25);
+
+	@include adaptive(mobile) {
+		inline-size: f.rem($btn-width);
+		block-size: f.rem($btn-height);
+	}
+
 	[data-theme="light"] & {
 		background-color: f.cl($cd-glass-background, $a: 0.25);
 	}
@@ -87,6 +90,7 @@ $devices: (
 	svg {
 		inline-size: 50%;
 		block-size: 50%;
+		margin: auto;
 		fill: currentColor;
 	}
 }

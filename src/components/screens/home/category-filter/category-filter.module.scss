@@ -4,6 +4,8 @@
 @use "@/styles/keyframes" as *;
 
 .category-filter {
+	$handle-size: 24;
+
 	@include m.glassyBorder(45deg);
 	position: fixed;
 	z-index: 2;
@@ -37,27 +39,46 @@
 		top: 8dvh;
 	}
 	&[aria-expanded="false"] {
-		top: calc(100dvh - f.rem(24));
+		top: calc(100dvh - f.rem($handle-size * 2));
+
+		@include m.adaptive(mobile) {
+			top: calc(100dvh - f.rem($handle-size));
+		}
 	}
 
 	&__handle {
-		padding: f.rem(10) 0;
+		display: grid;
+		place-items: center;
+		block-size: f.rem($handle-size) * 2;
+
+		@include m.adaptive(mobile) {
+			block-size: f.rem($handle-size);
+		}
 
 		&::after {
-			display: block;
-			inline-size: f.rem(40);
-			block-size: f.rem(4);
-			margin-inline: auto;
+			inline-size: f.rem(40 * 2);
+			block-size: f.rem(4 * 2);
 			content: "";
 			background-color: f.cl($cd-accent, $a: 0.25);
-			border-radius: f.rem(2);
+			border-radius: 100vw;
+
+			@include m.adaptive(mobile) {
+				inline-size: f.rem(40);
+				block-size: f.rem(4);
+			}
 		}
 	}
 
 	&__list {
-		padding: 0 f.rem(24);
+		block-size: 100%;
+		padding: 0 f.rem($handle-size * 2);
 		overflow-y: auto;
-		font-size: f.rem(10);
+		font-size: f.rem(18 * 2);
 		mask: linear-gradient(to bottom, #0000, #000 5% 95%, #0000);
+
+		@include m.adaptive(mobile) {
+			padding: 0 f.rem($handle-size);
+			font-size: f.rem(18);
+		}
 	}
 }

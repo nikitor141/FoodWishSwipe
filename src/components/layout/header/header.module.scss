@@ -5,32 +5,45 @@
 
 .header {
 	@include m.glassyBorder(0deg, f.rem(1));
-	$btn-width: 35;
-	$btn-height: 35;
 	$gap: 20;
 
 	position: sticky;
 	top: f.rem(5);
 	z-index: 1;
 	display: flex;
-	gap: f.rem($gap);
+	gap: f.rem($gap * 2);
 	align-items: center;
 	justify-content: space-between;
-	padding: f.rem(15) f.rem(30);
-	margin: f.rem(5) auto;
+	padding: f.rem(30) f.rem(60);
+	margin: f.rem(10) auto;
 	background-color: f.cl($cd-glass-background, $a: 0.45);
-	border-radius: f.rem(50);
+	border-radius: 100vw;
 	backdrop-filter: $liquid-blur-d;
+
+	@include m.adaptive(mobile) {
+		gap: f.rem($gap);
+		padding: f.rem(15) f.rem(30);
+		margin-block: f.rem(5);
+	}
+
 	[data-theme="light"] & {
 		backdrop-filter: $liquid-blur-l;
 	}
 
 	&::after {
-		inline-size: f.rem(2);
-		block-size: f.rem(20);
+		inline-size: f.rem(math.div($gap, 5));
+		block-size: f.rem($gap);
 		content: "";
-		background-color: f.cl($cd-glass-background, $a: 0.5);
+		background-color: f.cl($cd-glass-background, $l: 0.1, $a: 0.5);
 		border-radius: f.rem(1);
+
+		[data-theme="light"] & {
+			background-color: f.cl($cd-glass-background, $a: 0.5);
+		}
+		@include m.adaptive(mobile) {
+			inline-size: f.rem(math.div($gap, 10));
+			block-size: f.rem(math.div($gap, 2));
+		}
 	}
 
 	[data-ui="theme-switcher"] {
@@ -46,12 +59,16 @@
 
 		ul {
 			display: flex;
-			gap: f.rem(20);
+			gap: f.rem($gap * 2);
 			align-items: center;
+
+			@include m.adaptive(mobile) {
+				gap: f.rem($gap);
+			}
 		}
 
 		&-indicator {
-			@include m.btn($btn-width, $btn-height);
+			@include m.btn();
 			position: absolute;
 			top: 0;
 			right: 0;
@@ -73,18 +90,9 @@
 		}
 	}
 	&__nav-link {
-		display: flex;
-		inline-size: f.rem($btn-width);
-		block-size: f.rem($btn-height);
+		@include m.btn();
 		color: f.cl($cd-text, $a: 0.6);
 		transition: color 0.3s 0.15s ease-out;
-
-		svg {
-			inline-size: 50%;
-			block-size: 50%;
-			margin: auto;
-			fill: currentColor;
-		}
 
 		&--active {
 			color: f.cl($cd-text);

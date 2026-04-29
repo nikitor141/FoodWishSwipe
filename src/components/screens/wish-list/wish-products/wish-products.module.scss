@@ -4,8 +4,10 @@
 @use "@/styles/keyframes" as *;
 
 .wish-products {
+	max-inline-size: 480px;
 	block-size: 100%;
 	padding-bottom: f.rem(45);
+	margin-inline: auto;
 
 	&__list {
 		display: grid;
@@ -39,11 +41,16 @@
 		@include m.glassyBorder();
 		position: fixed;
 		bottom: 0;
+		left: 0;
 		inline-size: 100%;
-		padding: f.rem(5) 0;
+		padding-block: f.rem(10);
 		background-color: f.cl($cd-glass-background, $a: 0.45);
 		border-radius: f.rem(14) f.rem(14) 0 0;
 		backdrop-filter: $liquid-blur-d;
+
+		@include m.adaptive(mobile) {
+			padding-block: f.rem(5);
+		}
 
 		[data-theme="light"] & {
 			backdrop-filter: $liquid-blur-l;
@@ -52,7 +59,8 @@
 
 	&__clear-button {
 		@include m.btn();
-		margin: 0 auto;
+		margin-inline: auto;
+
 		[data-theme="light"] &,
 		& {
 			background-color: f.cl($cd-negative, $a: 0.45);

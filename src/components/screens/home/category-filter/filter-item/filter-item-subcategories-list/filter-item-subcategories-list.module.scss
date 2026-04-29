@@ -1,14 +1,14 @@
-@use '@/styles/functions' as f;
-@use '@/styles/variables' as *;
+@use "@/styles/functions" as f;
+@use "@/styles/variables" as *;
 
 .filter-item-subcategories-list {
-  padding-left: 1em;
-  border-left: f.rem(2) solid f.cl($cd-accent, $a: 0.3);
+	padding-left: 1em;
+	border-left: f.rem(2) solid f.cl($cd-accent, $a: 0.3);
 
-  &[aria-expanded='false'] {
-    display: none;
-  }
-  &[aria-expanded='true'] {
-    display: block;
-  }
+	&[aria-expanded="false"] {
+		display: none;
+	}
+	&[aria-expanded="true"] {
+		display: block;
+	}
 }

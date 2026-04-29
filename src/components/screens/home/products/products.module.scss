@@ -3,7 +3,10 @@
 @use "sass:math";
 
 .products {
+	max-inline-size: 530px;
 	block-size: 100%;
+	margin-inline: auto;
+
 	&__list {
 		$stack-item-shift: -20;
 		display: grid;

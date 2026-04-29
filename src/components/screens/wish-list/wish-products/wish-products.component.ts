@@ -72,12 +72,12 @@ export class WishProducts implements StaticComponent {
 
 		switch (mode) {
 			case 'view': {
-				this.element.removeEventListener('click', this.#handleLiClick)
+				this.element.removeEventListener('pointerdown', this.#handleLiClick)
 				this.#selectedLiElements.clear()
 				break
 			}
 			case 'edit': {
-				this.element.addEventListener('click', this.#handleLiClick)
+				this.element.addEventListener('pointerdown', this.#handleLiClick)
 				break
 			}
 		}
@@ -210,6 +210,3 @@ export class WishProducts implements StaticComponent {
 		return this.element
 	}
 }
-
-//todo кастомная картинка вместо обычного текста о пустом списке (маскот или что-то типа)
-// сгенерировать в chatgpt
